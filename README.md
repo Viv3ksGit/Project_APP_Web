@@ -11,6 +11,30 @@ npm run dev
 
 Open [http://127.0.0.1:3000](http://127.0.0.1:3000) with your browser.
 
+## Architecture Overview
+
+```mermaid
+flowchart TD
+  U["User (Web / PWA Browser)"] --> UI["Next.js App Router UI"]
+  UI --> API["Next.js API Routes"]
+
+  UI --> TTS["Browser SpeechSynthesis (TTS)"]
+  TTS --> VOICE["System Voices (en-IN, ta-IN, hi-IN, etc.)"]
+
+  API --> DOMAIN["Domain Layer (Slokas, Validation)"]
+  API --> STORE["Session Store (In-Memory, Phase 1)"]
+
+  DOMAIN --> CATALOG["Sloka Catalog + Pronunciation Data"]
+  STORE --> LIVE["Live Session State (invite, participants, current line)"]
+
+  API --> SEC["Input Validation + Error Guards"]
+  SEC --> HDR["Security Headers (CSP, COOP, CORP, HSTS)"]
+
+  CI["GitHub Actions"] --> GATES["Lint + Typecheck + Build + Dependency Audit"]
+```
+
+Detailed architecture notes are in `docs/ARCHITECTURE.md`.
+
 ## Quality And Security Commands
 
 ```bash
@@ -32,6 +56,27 @@ npm run audit:deps
 
 1. `.github/workflows/ci.yml` runs lint, typecheck, and build.
 2. `.github/workflows/security.yml` runs dependency audit on PRs and weekly schedule.
+
+## Turbopack Panic Recovery (Windows)
+
+If you see a fatal Turbopack panic log, use webpack mode:
+
+```bash
+npm run dev
+```
+
+Optional Turbopack run:
+
+```bash
+npm run dev:turbo
+```
+
+If panic continues:
+
+1. Stop all Node processes.
+2. Delete `.next`.
+3. Run `npm ci`.
+4. Run `npm run dev`.
 
 ## Next Steps
 
