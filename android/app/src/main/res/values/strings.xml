@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Sloka Sabha</string>
+    <string name="title_activity_main">Sloka Sabha</string>
+    <string name="package_name">com.viv.slokasabha</string>
+    <string name="custom_url_scheme">com.viv.slokasabha</string>
+</resources>

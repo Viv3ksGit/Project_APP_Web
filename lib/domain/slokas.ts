@@ -7,7 +7,7 @@ const SLOKAS: Sloka[] = [
     titleTamil: "Lingashtakam (long form)",
     category: "Shiva",
     duration: "12 min",
-    icon: "SI",
+    icon: "LI",
     lines: [
       {
         tamil: "Brahma Murari Surarchita Lingam",

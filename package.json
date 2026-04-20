@@ -11,9 +11,15 @@
     "typecheck": "tsc --noEmit",
     "audit:deps": "npm audit --audit-level=high",
     "check:quality": "npm run lint && npm run typecheck && npm run build",
-    "check:security": "npm run audit:deps"
+    "check:security": "npm run audit:deps",
+    "android:sync": "npx cap sync android",
+    "android:copy": "npx cap copy android",
+    "android:open": "npx cap open android"
   },
   "dependencies": {
+    "@capacitor/android": "^8.3.1",
+    "@capacitor/cli": "^8.3.1",
+    "@capacitor/core": "^8.3.1",
     "next": "16.2.4",
     "react": "19.2.4",
     "react-dom": "19.2.4"

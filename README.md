@@ -11,6 +11,37 @@ npm run dev
 
 Open [http://127.0.0.1:3000](http://127.0.0.1:3000) with your browser.
 
+## Android APK Build (Capacitor)
+
+This repo now includes a Capacitor Android wrapper in `android/`.
+
+Because this app uses Next.js API routes, Android should load your deployed web app URL.
+
+1. Deploy the web app (for example on Vercel) and copy the HTTPS URL.
+2. Set the URL for Capacitor sync:
+
+```bash
+$env:CAPACITOR_APP_URL="https://your-deployed-app-url"
+npm run android:sync
+```
+
+3. Open native project:
+
+```bash
+npm run android:open
+```
+
+4. In Android Studio, build APK:
+`Build -> Build Bundle(s) / APK(s) -> Build APK(s)`
+
+### Prerequisites
+
+1. Android Studio (latest stable)
+2. Android SDK + Platform Tools
+3. Java 17 (required by modern Android Gradle toolchains)
+
+If `CAPACITOR_APP_URL` is not set, the app uses a local fallback page from `mobile-web/index.html`.
+
 ## Architecture Overview
 
 ```mermaid
