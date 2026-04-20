@@ -436,19 +436,6 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
     return slokaList.filter((sloka) => (SLOKA_RECOMMENDATIONS[sloka.id]?.days ?? []).includes(todayDay));
   }, [slokaList, todayDay]);
 
-  const todaySuggestions = useMemo(() => {
-    if (homeDurationMax === null) return todayRecommendedSlokas;
-    return todayRecommendedSlokas.filter((sloka) => parseDurationMinutes(sloka.duration) <= homeDurationMax);
-  }, [homeDurationMax, todayRecommendedSlokas]);
-
-  const durationSuggestedSlokas = useMemo(() => {
-    const sorted = [...slokaList].sort(
-      (left, right) => parseDurationMinutes(left.duration) - parseDurationMinutes(right.duration),
-    );
-    if (homeDurationMax === null) return sorted.slice(0, 6);
-    return sorted.filter((sloka) => parseDurationMinutes(sloka.duration) <= homeDurationMax).slice(0, 6);
-  }, [homeDurationMax, slokaList]);
-
   const popularSlokas = useMemo(() => {
     const withCounts = slokaList
       .map((sloka) => ({
@@ -1141,46 +1128,15 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
                   Any length
                 </button>
               </div>
-              {!guidedStart && (
-                <>
-                  <div className="action-row">
-                    <button className="primary-button" onClick={() => setRoute("library")} type="button">
-                      Open Library
-                    </button>
-                    <button className="secondary-button" onClick={() => setRoute("gods")} type="button">
-                      Browse by Gods
-                    </button>
-                  </div>
-                  <button className="secondary-button full" onClick={() => setRoute("favorites")} type="button">
-                    View Favorites
-                  </button>
-                </>
-              )}
-              {guidedStart && (
-                <button className="secondary-button full" onClick={() => setGuidedStart(false)} type="button">
-                  Show Full Home
+              <div className="action-row">
+                <button className="primary-button" onClick={() => setRoute("library")} type="button">
+                  Open Library
                 </button>
-              )}
+                <button className="secondary-button" onClick={() => setRoute("gods")} type="button">
+                  Browse by Gods
+                </button>
+              </div>
             </article>
-
-            {!guidedStart && (
-              <>
-                <article className="event-card section-stack">
-                  <h3>Browse by Gods</h3>
-                  <p>Open the dedicated Gods page and filter slokas deity-wise.</p>
-                  <button className="primary-button full" onClick={() => setRoute("gods")} type="button">
-                    Open Gods Page
-                  </button>
-                </article>
-                <article className="event-card section-stack">
-                  <h3>Daily Practice</h3>
-                  <p>Progress, recommendations, and reminders are available in Practice.</p>
-                  <button className="secondary-button full" onClick={() => setRoute("practice")} type="button">
-                    Open Practice
-                  </button>
-                </article>
-              </>
-            )}
 
             {homeSearch.trim().length > 0 || guidedStart ? (
               <>
@@ -1227,27 +1183,27 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
             ) : (
               <>
                 <div className="section-heading">
-                  <h2>{todayDay ? `Today (${todayDay})` : "Today"}</h2>
+                  <h2>Popular Slokas</h2>
                 </div>
-                {todaySuggestions.length === 0 ? (
+                {popularSlokas.length === 0 ? (
                   <article className="event-card">
-                    <h3>No day-specific sloka today</h3>
-                    <p>Try changing duration filter or browse all slokas.</p>
+                    <h3>No slokas available</h3>
+                    <p>Please add slokas to the catalog.</p>
                   </article>
                 ) : (
                   <div className="sloka-list">
-                    {todaySuggestions.map((sloka) => (
-                      <article className="event-card" key={`today-${sloka.id}`}>
+                    {popularSlokas.map((sloka) => (
+                      <article className="event-card" key={`popular-${sloka.id}`}>
                         <button className="sloka-row" onClick={() => void loadSlokaDetail(sloka.id, "home")} type="button">
                           <SlokaTile sloka={sloka} />
                           <span>
                             <strong>{sloka.title}</strong>
-                            <small>{sloka.titleTamil} | {sloka.category} | {sloka.duration}</small>
+                            <small>{sloka.titleTamil} | {sloka.category} | {sloka.lineCount} lines</small>
                           </span>
                           <span>{">"}</span>
                         </button>
                         <div className="meta-row">
-                          <span className="mini-muted">{SLOKA_RECOMMENDATIONS[sloka.id]?.reason}</span>
+                          <span className="mini-muted">{sloka.duration}</span>
                           <button
                             aria-label={favorites.has(sloka.id) ? `Remove ${sloka.title} from favorites` : `Add ${sloka.title} to favorites`}
                             className={`favorite-icon-button ${favorites.has(sloka.id) ? "active" : ""}`}
@@ -1262,105 +1218,6 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
                     ))}
                   </div>
                 )}
-
-                {!guidedStart && (
-                  <>
-                    <div className="section-heading">
-                      <h2>Popular Slokas</h2>
-                    </div>
-                    <div className="sloka-list">
-                      {popularSlokas.map((sloka) => (
-                        <article className="event-card" key={`popular-${sloka.id}`}>
-                          <button className="sloka-row" onClick={() => void loadSlokaDetail(sloka.id, "home")} type="button">
-                            <SlokaTile sloka={sloka} />
-                            <span>
-                              <strong>{sloka.title}</strong>
-                              <small>{sloka.titleTamil} | {sloka.category} | {sloka.lineCount} lines</small>
-                            </span>
-                            <span>{">"}</span>
-                          </button>
-                          <div className="meta-row">
-                            <span className="mini-muted">{sloka.duration}</span>
-                            <button
-                              aria-label={favorites.has(sloka.id) ? `Remove ${sloka.title} from favorites` : `Add ${sloka.title} to favorites`}
-                              className={`favorite-icon-button ${favorites.has(sloka.id) ? "active" : ""}`}
-                              onClick={() => toggleFavorite(sloka.id)}
-                              title={favorites.has(sloka.id) ? "Remove favorite" : "Add favorite"}
-                              type="button"
-                            >
-                              <FavoriteGlyph active={favorites.has(sloka.id)} />
-                            </button>
-                          </div>
-                        </article>
-                      ))}
-                    </div>
-                  </>
-                )}
-
-                <div className="section-heading">
-                  <h2>{homeDurationMax === null ? "Quick Start by Duration" : `Quick Start (<= ${homeDurationMax} min)`}</h2>
-                </div>
-                {durationSuggestedSlokas.length === 0 ? (
-                  <article className="event-card">
-                    <h3>No slokas in this duration</h3>
-                    <p>Select a longer duration to get suggestions.</p>
-                  </article>
-                ) : (
-                  <div className="sloka-list">
-                    {durationSuggestedSlokas.map((sloka) => (
-                      <article className="event-card" key={`duration-${sloka.id}`}>
-                        <button className="sloka-row" onClick={() => void loadSlokaDetail(sloka.id, "home")} type="button">
-                          <SlokaTile sloka={sloka} />
-                          <span>
-                            <strong>{sloka.title}</strong>
-                            <small>{sloka.titleTamil} | {sloka.category} | {sloka.duration}</small>
-                          </span>
-                          <span>{">"}</span>
-                        </button>
-                        <div className="meta-row">
-                          <span className="mini-muted">{sloka.lineCount} lines</span>
-                          <button
-                            aria-label={favorites.has(sloka.id) ? `Remove ${sloka.title} from favorites` : `Add ${sloka.title} to favorites`}
-                            className={`favorite-icon-button ${favorites.has(sloka.id) ? "active" : ""}`}
-                            onClick={() => toggleFavorite(sloka.id)}
-                            title={favorites.has(sloka.id) ? "Remove favorite" : "Add favorite"}
-                            type="button"
-                          >
-                            <FavoriteGlyph active={favorites.has(sloka.id)} />
-                          </button>
-                        </div>
-                      </article>
-                    ))}
-                  </div>
-                )}
-              </>
-            )}
-
-            {!guidedStart && (
-              <>
-                <div className="section-heading">
-                  <h2>Your Favorites</h2>
-                </div>
-                {favoriteSlokas.length === 0 && (
-                  <article className="event-card">
-                    <h3>No favorites yet</h3>
-                    <p>Tap Favorite on any sloka and it will appear here.</p>
-                  </article>
-                )}
-                <div className="sloka-list">
-                  {favoriteSlokas.slice(0, 4).map((sloka) => (
-                    <article className="event-card" key={`home-fav-${sloka.id}`}>
-                      <button className="sloka-row" onClick={() => void loadSlokaDetail(sloka.id, "home")} type="button">
-                        <SlokaTile sloka={sloka} />
-                        <span>
-                          <strong>{sloka.title}</strong>
-                          <small>{sloka.titleTamil} | {sloka.category}</small>
-                        </span>
-                        <span>{">"}</span>
-                      </button>
-                    </article>
-                  ))}
-                </div>
               </>
             )}
           </section>
