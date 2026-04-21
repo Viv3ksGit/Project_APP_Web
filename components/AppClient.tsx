@@ -60,7 +60,9 @@ const DEITY_PHOTOS: Record<string, string> = {
   Guru: "/deities/guru.jpg",
 };
 const LANDING_OM_AUDIO_SRC = "/media/om-chant.mp3";
-const LANDING_OM_AUDIO_VOLUME = 0.1;
+const LANDING_OM_AUDIO_VOLUME = 0.08;
+const LANDING_WATERFALL_AUDIO_SRC = "/media/waterfall-ambience.mp3";
+const LANDING_WATERFALL_AUDIO_VOLUME = 0.05;
 const LANDING_OM_FADE_OUT_MS = 650;
 const POPULAR_SLOKA_ORDER = [
   "hanuman-chalisa",
@@ -308,6 +310,8 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
   const startSearchInputRef = useRef<HTMLInputElement | null>(null);
   const speechRunRef = useRef<number>(0);
   const landingAudioRef = useRef<HTMLAudioElement | null>(null);
+  const landingWaterfallAudioRef = useRef<HTMLAudioElement | null>(null);
+  const landingWaterfallFailedRef = useRef<boolean>(false);
 
   const categories = useMemo(() => {
     const values = new Set(slokaList.map((sloka) => sloka.category));
@@ -549,27 +553,35 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
 
   const fadeOutAmbientDrone = useCallback(async (durationMs: number = LANDING_OM_FADE_OUT_MS) => {
     if (typeof window === "undefined") return;
-    const audio = landingAudioRef.current;
-    if (!audio || audio.paused) return;
+    const audios = [landingAudioRef.current, landingWaterfallAudioRef.current].filter(
+      (audio): audio is HTMLAudioElement => Boolean(audio && !audio.paused),
+    );
+    if (audios.length === 0) return;
 
-    const startVolume = audio.volume;
     const steps = Math.max(1, Math.floor(durationMs / 40));
-    const stepVolume = startVolume / steps;
+    const startVolumes = audios.map((audio) => audio.volume);
 
     await new Promise<void>((resolve) => {
       let currentStep = 0;
       const timer = window.setInterval(() => {
         currentStep += 1;
-        audio.volume = Math.max(0, startVolume - stepVolume * currentStep);
+        audios.forEach((audio, index) => {
+          const startVolume = startVolumes[index];
+          const stepVolume = startVolume / steps;
+          audio.volume = Math.max(0, startVolume - stepVolume * currentStep);
+        });
         if (currentStep >= steps) {
           window.clearInterval(timer);
-          audio.pause();
-          try {
-            audio.currentTime = 0;
-          } catch {
-            // no-op
-          }
-          audio.volume = LANDING_OM_AUDIO_VOLUME;
+          audios.forEach((audio) => {
+            audio.pause();
+            try {
+              audio.currentTime = 0;
+            } catch {
+              // no-op
+            }
+          });
+          if (landingAudioRef.current) landingAudioRef.current.volume = LANDING_OM_AUDIO_VOLUME;
+          if (landingWaterfallAudioRef.current) landingWaterfallAudioRef.current.volume = LANDING_WATERFALL_AUDIO_VOLUME;
           resolve();
         }
       }, 40);
@@ -699,14 +711,17 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
 
   const stopAmbientDrone = useCallback(() => {
     if (typeof window === "undefined") return;
-    const audio = landingAudioRef.current;
-    if (!audio) return;
-    audio.pause();
-    try {
-      audio.currentTime = 0;
-    } catch {
-      // no-op
-    }
+    const audios = [landingAudioRef.current, landingWaterfallAudioRef.current].filter(
+      (audio): audio is HTMLAudioElement => Boolean(audio),
+    );
+    audios.forEach((audio) => {
+      audio.pause();
+      try {
+        audio.currentTime = 0;
+      } catch {
+        // no-op
+      }
+    });
   }, []);
 
   const startAmbientDrone = useCallback(async (): Promise<boolean> => {
@@ -714,20 +729,56 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
     if (!landingAudioRef.current) {
       const audio = new Audio(LANDING_OM_AUDIO_SRC);
       audio.loop = true;
-      audio.preload = "auto";
+      audio.preload = "metadata";
       audio.volume = LANDING_OM_AUDIO_VOLUME;
       (audio as HTMLAudioElement & { playsInline?: boolean }).playsInline = true;
       landingAudioRef.current = audio;
     }
-
-    if (!landingAudioRef.current.paused) return true;
-
-    try {
-      await landingAudioRef.current.play();
-      return true;
-    } catch {
-      return false;
+    if (!landingWaterfallAudioRef.current) {
+      const waterfallAudio = new Audio(LANDING_WATERFALL_AUDIO_SRC);
+      waterfallAudio.loop = true;
+      waterfallAudio.preload = "none";
+      waterfallAudio.volume = LANDING_WATERFALL_AUDIO_VOLUME;
+      (waterfallAudio as HTMLAudioElement & { playsInline?: boolean }).playsInline = true;
+      waterfallAudio.addEventListener("error", () => {
+        landingWaterfallFailedRef.current = true;
+      });
+      landingWaterfallAudioRef.current = waterfallAudio;
     }
+
+    const omAudio = landingAudioRef.current;
+    const waterfallAudio = landingWaterfallAudioRef.current;
+    if (!omAudio) return false;
+    if (!omAudio.paused && (landingWaterfallFailedRef.current || !waterfallAudio || !waterfallAudio.paused)) return true;
+
+    const playWarm = async (audio: HTMLAudioElement, targetVolume: number): Promise<boolean> => {
+      if (!audio.paused) return true;
+      audio.volume = targetVolume;
+      // Best effort for autoplay policies: start muted, then fade in audible volume.
+      audio.muted = true;
+      try {
+        await audio.play();
+        window.setTimeout(() => {
+          audio.muted = false;
+          audio.volume = targetVolume;
+        }, 180);
+        return true;
+      } catch {
+        audio.muted = false;
+        return false;
+      }
+    };
+
+    const omStarted = await playWarm(omAudio, LANDING_OM_AUDIO_VOLUME);
+    // Start the secondary ambience after Om so initial paint/audio feels faster.
+    if (!landingWaterfallFailedRef.current && waterfallAudio) {
+      window.setTimeout(() => {
+        void playWarm(waterfallAudio, LANDING_WATERFALL_AUDIO_VOLUME).then((started) => {
+          if (!started) landingWaterfallFailedRef.current = true;
+        });
+      }, 900);
+    }
+    return omStarted;
   }, []);
 
   /* eslint-disable react-hooks/set-state-in-effect */
@@ -838,24 +889,6 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const audio =
-      landingAudioRef.current ??
-      (() => {
-        const nextAudio = new Audio(LANDING_OM_AUDIO_SRC);
-        nextAudio.loop = true;
-        nextAudio.preload = "auto";
-        nextAudio.volume = LANDING_OM_AUDIO_VOLUME;
-        landingAudioRef.current = nextAudio;
-        return nextAudio;
-      })();
-
-    if (audio.readyState === 0) {
-      audio.load();
-    }
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
     if (route === "detail" || !ambientEnabled) {
       stopAmbientDrone();
       return;
@@ -914,7 +947,7 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
               if (ambientEnabled) void startAmbientDrone();
             }}
           >
-            <video autoPlay className="landing-video" loop muted playsInline poster="/deities/shiva.jpg" preload="metadata">
+            <video autoPlay className="landing-video" loop muted playsInline poster="/deities/shiva.jpg" preload="none">
               <source src="/media/sloka-hero.mp4" type="video/mp4" />
             </video>
             <div className="landing-overlay" />
