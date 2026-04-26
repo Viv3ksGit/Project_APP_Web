@@ -10,6 +10,7 @@ export type SlokaLine = {
   english: string;
   pronunciation?: string;
   meaning: string;
+  meaningTamil?: string;
 };
 
 export type Sloka = {

@@ -1,45 +1,37 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import Image from "next/image";
+import Sanscript from "@indic-transliteration/sanscript";
 import type { Sloka, SlokaSummary } from "@/lib/domain/types";
 
-type Route = "landing" | "home" | "gods" | "practice" | "library" | "detail" | "favorites" | "phase2";
+type Route = "landing" | "home" | "calendar" | "gods" | "sessions" | "library" | "detail" | "favorites" | "profile" | "phase2";
 type AppClientProps = {
   initialSlokaList: SlokaSummary[];
   initialSloka: Sloka;
 };
 type SlokaLineItem = Sloka["lines"][number];
-type QuickActionIcon = "favorite" | "favorites" | "pronunciation" | "word" | "chant1" | "chant11";
 type SearchSuggestion = {
   value: string;
   rank: number;
 };
+type ReaderLanguage = "both" | "tamil" | "english";
+type TamilCalendarToday = {
+  date: string;
+  weekday: string;
+  tithi: string;
+  paksha: string;
+  masa: string;
+  highlight: string;
+  festivals: Array<{ name: string; category: string }>;
+  location: string;
+};
 
-const WORD_PUNCTUATION_PATTERN = /[.,;:!?()[\]{}"']/g;
-const INDIAN_LANG_PREFIXES = ["en-in", "hi-in", "ta-in", "te-in", "kn-in", "ml-in", "mr-in", "bn-in", "gu-in", "pa-in"];
-const TAMIL_SCRIPT_PATTERN = /[\u0b80-\u0bff]/;
-const CHANT_REPLACEMENTS: Array<[RegExp, string]> = [
-  [/\bshri\b/gi, "shree"],
-  [/\bsri\b/gi, "shree"],
-  [/\bhanuman\b/gi, "hanu maan"],
-  [/\bchalisa\b/gi, "cha lee saa"],
-  [/\bram\b/gi, "raam"],
-  [/\brama\b/gi, "raa maa"],
-  [/\blakhan\b/gi, "luk hun"],
-  [/\bsita\b/gi, "see taa"],
-  [/\banjani\b/gi, "un ju nee"],
-  [/\bpavan\b/gi, "puh vun"],
-  [/\bjai\b/gi, "jeye"],
-  [/\bsankat\b/gi, "sun kut"],
-  [/\bguru\b/gi, "goo roo"],
-  [/\bnamah\b/gi, "nu muh"],
-];
 const STORAGE_KEYS = {
   favorites: "sloka_sabha_favorites_v2",
-  voiceUri: "sloka_sabha_voice_uri_v2",
   chantProgress: "sloka_sabha_chant_progress_v1",
   reminders: "sloka_sabha_reminders_v1",
+  readerPrefs: "sloka_sabha_reader_prefs_v1",
 };
 const WEEK_DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"] as const;
 const DAILY_TARGET_OPTIONS = [11, 21, 51] as const;
@@ -53,17 +45,15 @@ const SLOKA_RECOMMENDATIONS: Record<string, { days: string[]; reason: string }> 
   "shantakaram-bhujagashayanam": { days: ["Thursday", "Saturday"], reason: "Often chanted for Vishnu prayers on these days." },
 };
 const DEITY_PHOTOS: Record<string, string> = {
-  Shiva: "/deities/shiva.jpg",
-  Hanuman: "/deities/hanuman.jpg",
-  Durga: "/deities/durga.jpg",
-  Vishnu: "/deities/vishnu.jpg",
-  Guru: "/deities/guru.jpg",
+  Shiva: "/deities/line/shiva.png",
+  Hanuman: "/deities/line/hanuman.png",
+  Durga: "/deities/line/durga.png",
+  Vishnu: "/deities/line/vishnu-clean.png",
+  Guru: "/deities/line/ayyappa.png",
 };
-const LANDING_OM_AUDIO_SRC = "/media/om-chant.mp3";
-const LANDING_OM_AUDIO_VOLUME = 0.08;
-const LANDING_WATERFALL_AUDIO_SRC = "/media/waterfall-ambience.mp3";
-const LANDING_WATERFALL_AUDIO_VOLUME = 0.05;
-const LANDING_OM_FADE_OUT_MS = 650;
+const DEITY_PLAYER_HERO_PHOTOS: Partial<Record<string, string>> = {
+  Shiva: "/deities/line/shiva-player-clean-v2.png",
+};
 const POPULAR_SLOKA_ORDER = [
   "hanuman-chalisa",
   "lingashtakam",
@@ -88,6 +78,11 @@ type ReminderSettings = {
   days: string[];
   lastNotifiedDate: string;
 };
+type ReaderPrefs = {
+  fontScale: number;
+  language: ReaderLanguage;
+  showMeaning: boolean;
+};
 
 const DEFAULT_CHANT_PROGRESS: ChantProgress = {
   dailyTarget: DAILY_TARGET_OPTIONS[0],
@@ -103,6 +98,11 @@ const DEFAULT_REMINDERS: ReminderSettings = {
   time: "06:30",
   days: ["Tuesday", "Saturday"],
   lastNotifiedDate: "",
+};
+const DEFAULT_READER_PREFS: ReaderPrefs = {
+  fontScale: 0.68,
+  language: "both",
+  showMeaning: true,
 };
 
 function safeParse<T>(value: string | null, fallback: T): T {
@@ -152,107 +152,19 @@ function normalizeProgressForToday(value: ChantProgress, todayDateKey: string): 
   };
 }
 
-function getPronunciationWords(pronunciation: string): string[] {
-  return pronunciation
-    .split(/\s+/)
-    .map((word) => word.replace(/-/g, "").replace(WORD_PUNCTUATION_PATTERN, "").trim())
-    .filter((word) => word.length > 0);
+function hasTamilScript(text: string): boolean {
+  return /[\u0b80-\u0bff]/.test(text);
 }
 
-function normalizeSpeechText(text: string, locale: string): string {
-  let normalized = text.replace(/-/g, "").replace(/\s*;\s*/g, ", ").replace(/\s+/g, " ").trim();
-  if (locale.startsWith("en")) {
-    for (const [pattern, replacement] of CHANT_REPLACEMENTS) {
-      normalized = normalized.replace(pattern, replacement);
-    }
+function toTamilScript(text: string): string {
+  const normalized = text.trim();
+  if (!normalized) return normalized;
+  if (hasTamilScript(normalized)) return normalized;
+  try {
+    return Sanscript.t(normalized.toLowerCase(), "itrans", "tamil");
+  } catch {
+    return normalized;
   }
-  return normalized;
-}
-
-function buildSpeechChunks(text: string): string[] {
-  const chunks = text
-    .replace(/\s*[,;:]\s*/g, ". ")
-    .split(".")
-    .map((chunk) => chunk.trim())
-    .filter((chunk) => chunk.length > 0);
-  return chunks.length > 0 ? chunks : [text];
-}
-
-function isLikelyIndianVoice(voice: SpeechSynthesisVoice): boolean {
-  const lang = voice.lang.toLowerCase();
-  const name = voice.name.toLowerCase();
-  return INDIAN_LANG_PREFIXES.some((prefix) => lang.startsWith(prefix)) || name.includes("india");
-}
-
-function scoreVoice(voice: SpeechSynthesisVoice): number {
-  const lang = voice.lang.toLowerCase();
-  const name = voice.name.toLowerCase();
-  let score = 0;
-
-  if (lang.startsWith("en-in")) score += 120;
-  else if (INDIAN_LANG_PREFIXES.some((prefix) => lang.startsWith(prefix))) score += 100;
-
-  if (name.includes("india") || name.includes("hindi") || name.includes("tamil")) score += 24;
-  if (voice.localService) score += 6;
-  if (voice.default) score += 3;
-
-  return score;
-}
-
-function QuickActionGlyph({ icon }: { icon: QuickActionIcon }) {
-  if (icon === "favorite") {
-    return (
-      <svg aria-hidden="true" viewBox="0 0 24 24">
-        <path d="M12 20.6 4.9 14.2A5.7 5.7 0 0 1 3 9.9C3 6.9 5.2 4.6 8.1 4.6c1.5 0 2.9.7 3.9 1.9 1-1.2 2.4-1.9 3.9-1.9 2.9 0 5.1 2.3 5.1 5.3 0 1.6-.7 3.1-1.9 4.3L12 20.6Z" />
-      </svg>
-    );
-  }
-
-  if (icon === "favorites") {
-    return (
-      <svg aria-hidden="true" viewBox="0 0 24 24">
-        <path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1Z" />
-      </svg>
-    );
-  }
-
-  if (icon === "pronunciation") {
-    return (
-      <svg aria-hidden="true" viewBox="0 0 24 24">
-        <path d="M3 14h4l5 4V6L7 10H3v4Z" />
-        <path d="M16 9a4 4 0 0 1 0 6" />
-        <path d="M18.5 6.5a7.5 7.5 0 0 1 0 11" />
-      </svg>
-    );
-  }
-
-  if (icon === "word") {
-    return (
-      <svg aria-hidden="true" viewBox="0 0 24 24">
-        <rect x="3" y="5" width="8" height="5" rx="1.2" />
-        <rect x="13" y="5" width="8" height="5" rx="1.2" />
-        <rect x="3" y="13" width="5" height="5" rx="1.2" />
-        <rect x="10" y="13" width="11" height="5" rx="1.2" />
-      </svg>
-    );
-  }
-
-  if (icon === "chant1") {
-    return (
-      <svg aria-hidden="true" viewBox="0 0 24 24">
-        <path d="M4 7h10M4 12h10M4 17h10" />
-        <path d="M17 11v6M14 14h6" />
-      </svg>
-    );
-  }
-
-  return (
-    <svg aria-hidden="true" viewBox="0 0 24 24">
-      <path d="M4 7h8M4 12h8M4 17h8" />
-      <path d="M16 8v8M19 8v8" />
-      <path d="M14 12h7" />
-    </svg>
-  );
 }
 
 function FavoriteGlyph({ active }: { active: boolean }) {
@@ -263,6 +175,102 @@ function FavoriteGlyph({ active }: { active: boolean }) {
         fill={active ? "currentColor" : "none"}
       />
     </svg>
+  );
+}
+
+function BackGlyph() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24">
+      <path d="M15 5 8 12l7 7" />
+      <path d="M9 12h10" />
+    </svg>
+  );
+}
+
+function PlayerHeroCard({ imageSrc, deityName }: { imageSrc: string; deityName: string }) {
+  const deityClassName = `deity-${deityName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
+  return (
+    <article className="ref-player-hero-card">
+      <div className="ref-player-ring">
+        <Image
+          alt={`${deityName} deity`}
+          className={`ref-player-hero-image ${deityClassName}`}
+          height={180}
+          sizes="180px"
+          src={imageSrc}
+          unoptimized
+          width={180}
+        />
+      </div>
+    </article>
+  );
+}
+
+function ShlokaTextBlock({
+  title,
+  lines,
+  language,
+  showMeaning,
+}: {
+  title: string;
+  lines: SlokaLineItem[];
+  language: ReaderLanguage;
+  showMeaning: boolean;
+}) {
+  return (
+    <article className="ref-player-text-card">
+      <h2>{title}</h2>
+      <div className="ref-player-full-sloka">
+        {lines.map((line, index) => (
+          <div className="ref-player-line-pair" key={`player-line-${index + 1}`}>
+            {language !== "english" && (
+              <p className="ref-player-sanskrit">{toTamilScript((line.tamil || line.english || "").trim())}</p>
+            )}
+            {language !== "tamil" && (
+              <p className="ref-player-transliteration">{(line.english || line.pronunciation || line.tamil || "").trim()}</p>
+            )}
+            {showMeaning && line.meaning?.trim() && <p className="ref-player-meaning">{line.meaning.trim()}</p>}
+          </div>
+        ))}
+      </div>
+    </article>
+  );
+}
+
+function ReaderControls({
+  language,
+  showMeaning,
+  onDecreaseFont,
+  onIncreaseFont,
+  onSetLanguage,
+  onToggleMeaning,
+}: {
+  language: ReaderLanguage;
+  showMeaning: boolean;
+  onDecreaseFont: () => void;
+  onIncreaseFont: () => void;
+  onSetLanguage: (language: ReaderLanguage) => void;
+  onToggleMeaning: () => void;
+}) {
+  return (
+    <article className="ref-reader-controls-card" aria-label="Reader controls">
+      <div className="ref-reader-controls-row">
+        <button className="ref-reader-button" onClick={onDecreaseFont} title="Decrease font size" type="button">
+          A-
+        </button>
+        <button className="ref-reader-button" onClick={onIncreaseFont} title="Increase font size" type="button">
+          A+
+        </button>
+        <button className={`ref-reader-chip ${language === "tamil" ? "active" : ""}`} onClick={() => onSetLanguage("tamil")} type="button">{"\u0ba4\u0bae\u0bbf\u0bb4\u0bcd"}</button>
+        <button className={`ref-reader-chip ${language === "english" ? "active" : ""}`} onClick={() => onSetLanguage("english")} type="button">
+          English
+        </button>
+        <button className={`ref-reader-chip ${language === "both" ? "active" : ""}`} onClick={() => onSetLanguage("both")} type="button">
+          Both
+        </button>
+        <button className={`ref-reader-chip meaning ${showMeaning ? "active" : ""}`} onClick={onToggleMeaning} type="button">Meaning</button>
+      </div>
+    </article>
   );
 }
 
@@ -286,6 +294,7 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
   const [selectedSloka, setSelectedSloka] = useState<Sloka>(initialSloka);
   const [homeSearch, setHomeSearch] = useState<string>("");
   const [homeDurationMax, setHomeDurationMax] = useState<number | null>(10);
+  const [sessionDuration, setSessionDuration] = useState<number>(5);
   const [guidedStart, setGuidedStart] = useState<boolean>(false);
   const [showStartPrompt, setShowStartPrompt] = useState<boolean>(false);
   const [startPromptQuery, setStartPromptQuery] = useState<string>("");
@@ -294,24 +303,18 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
   const [favoritesSearch, setFavoritesSearch] = useState<string>("");
   const [libraryCategory, setLibraryCategory] = useState<string>("all");
   const [godsCategory, setGodsCategory] = useState<string>("all");
-  const [showPronunciation, setShowPronunciation] = useState<boolean>(true);
-  const [wordByWordMode, setWordByWordMode] = useState<boolean>(true);
-  const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
   const [liveMessage, setLiveMessage] = useState<string>("");
   const [isHydrated, setIsHydrated] = useState<boolean>(false);
-  const [voiceOptions, setVoiceOptions] = useState<SpeechSynthesisVoice[]>([]);
-  const [selectedVoiceUri, setSelectedVoiceUri] = useState<string>("");
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [chantProgress, setChantProgress] = useState<ChantProgress>(DEFAULT_CHANT_PROGRESS);
   const [reminders, setReminders] = useState<ReminderSettings>(DEFAULT_REMINDERS);
   const [todayDay, setTodayDay] = useState<string>("");
-  const [ambientEnabled, setAmbientEnabled] = useState<boolean>(true);
+  const [todayCalendar, setTodayCalendar] = useState<TamilCalendarToday | null>(null);
+  const [readerFontScale, setReaderFontScale] = useState<number>(DEFAULT_READER_PREFS.fontScale);
+  const [readerLanguage, setReaderLanguage] = useState<ReaderLanguage>(DEFAULT_READER_PREFS.language);
+  const [showMeaning, setShowMeaning] = useState<boolean>(DEFAULT_READER_PREFS.showMeaning);
   const homeSearchInputRef = useRef<HTMLInputElement | null>(null);
   const startSearchInputRef = useRef<HTMLInputElement | null>(null);
-  const speechRunRef = useRef<number>(0);
-  const landingAudioRef = useRef<HTMLAudioElement | null>(null);
-  const landingWaterfallAudioRef = useRef<HTMLAudioElement | null>(null);
-  const landingWaterfallFailedRef = useRef<boolean>(false);
 
   const categories = useMemo(() => {
     const values = new Set(slokaList.map((sloka) => sloka.category));
@@ -385,10 +388,29 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
   );
 
   const homeSuggestions = useMemo(() => buildSearchSuggestions(homeSearch), [buildSearchSuggestions, homeSearch]);
-  const startPromptSuggestions = useMemo(
-    () => buildSearchSuggestions(startPromptQuery),
-    [buildSearchSuggestions, startPromptQuery],
+  const findMatchingSlokas = useCallback(
+    (queryValue: string): SlokaSummary[] => {
+      const query = queryValue.trim().toLowerCase();
+      if (!query) return [];
+      return slokaList
+        .map((sloka) => {
+          const title = sloka.title.toLowerCase();
+          const titleTamil = sloka.titleTamil.toLowerCase();
+          const category = sloka.category.toLowerCase();
+          if (title === query || titleTamil === query) return { sloka, rank: 0 };
+          if (title.startsWith(query) || titleTamil.startsWith(query)) return { sloka, rank: 1 };
+          if (title.includes(query) || titleTamil.includes(query)) return { sloka, rank: 2 };
+          if (category.includes(query)) return { sloka, rank: 3 };
+          return null;
+        })
+        .filter((entry): entry is { sloka: SlokaSummary; rank: number } => entry !== null)
+        .sort((left, right) => left.rank - right.rank || left.sloka.title.localeCompare(right.sloka.title))
+        .map((entry) => entry.sloka);
+    },
+    [slokaList],
   );
+
+  const startPromptSuggestions = useMemo(() => findMatchingSlokas(startPromptQuery).slice(0, 8), [findMatchingSlokas, startPromptQuery]);
 
   const filteredSlokas = useMemo(() => {
     const query = librarySearch.trim().toLowerCase();
@@ -415,25 +437,9 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
     });
   }, [favoriteSlokas, favoritesSearch]);
 
-  const selectedVoice = useMemo(() => {
-    return voiceOptions.find((voice) => voice.voiceURI === selectedVoiceUri) ?? voiceOptions[0] ?? null;
-  }, [selectedVoiceUri, voiceOptions]);
-
   const selectedRecommendation = useMemo(() => {
     return SLOKA_RECOMMENDATIONS[selectedSloka.id] ?? null;
   }, [selectedSloka.id]);
-
-  const getLinePronunciationText = useCallback((line: SlokaLineItem): string => {
-    const explicitPronunciation = line.pronunciation?.trim() ?? "";
-    if (explicitPronunciation.length > 0) return explicitPronunciation;
-    const transliteration = line.english?.trim() ?? "";
-    if (transliteration.length > 0) return transliteration;
-    return line.tamil.trim();
-  }, []);
-
-  const hasPronunciationData = useMemo(() => {
-    return selectedSloka.lines.some((line) => getLinePronunciationText(line).length > 0);
-  }, [getLinePronunciationText, selectedSloka]);
 
   const todayRecommendedSlokas = useMemo(() => {
     if (!todayDay) return [];
@@ -471,6 +477,16 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
     if (chantProgress.totalCount >= 500) badges.push("500 chants");
     return badges;
   }, [chantProgress.totalCount]);
+
+  const dailyProgressPercent = useMemo(() => {
+    const safeTarget = Math.max(1, chantProgress.dailyTarget);
+    return Math.min(100, Math.round((chantProgress.dailyCount / safeTarget) * 100));
+  }, [chantProgress.dailyCount, chantProgress.dailyTarget]);
+  const remainingDailyChants = useMemo(
+    () => Math.max(0, chantProgress.dailyTarget - chantProgress.dailyCount),
+    [chantProgress.dailyCount, chantProgress.dailyTarget],
+  );
+  const isDailyTargetCompleted = remainingDailyChants === 0;
 
   const topChantedSlokas = useMemo(() => {
     const entries = Object.entries(chantProgress.perSlokaCount).sort((left, right) => right[1] - left[1]).slice(0, 3);
@@ -551,42 +567,7 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
     setLiveMessage("Test reminder sent.");
   }, [selectedSloka.title]);
 
-  const fadeOutAmbientDrone = useCallback(async (durationMs: number = LANDING_OM_FADE_OUT_MS) => {
-    if (typeof window === "undefined") return;
-    const audios = [landingAudioRef.current, landingWaterfallAudioRef.current].filter(
-      (audio): audio is HTMLAudioElement => Boolean(audio && !audio.paused),
-    );
-    if (audios.length === 0) return;
-
-    const steps = Math.max(1, Math.floor(durationMs / 40));
-    const startVolumes = audios.map((audio) => audio.volume);
-
-    await new Promise<void>((resolve) => {
-      let currentStep = 0;
-      const timer = window.setInterval(() => {
-        currentStep += 1;
-        audios.forEach((audio, index) => {
-          const startVolume = startVolumes[index];
-          const stepVolume = startVolume / steps;
-          audio.volume = Math.max(0, startVolume - stepVolume * currentStep);
-        });
-        if (currentStep >= steps) {
-          window.clearInterval(timer);
-          audios.forEach((audio) => {
-            audio.pause();
-            try {
-              audio.currentTime = 0;
-            } catch {
-              // no-op
-            }
-          });
-          if (landingAudioRef.current) landingAudioRef.current.volume = LANDING_OM_AUDIO_VOLUME;
-          if (landingWaterfallAudioRef.current) landingWaterfallAudioRef.current.volume = LANDING_WATERFALL_AUDIO_VOLUME;
-          resolve();
-        }
-      }, 40);
-    });
-  }, []);
+  const fadeOutAmbientDrone = useCallback(async () => {}, []);
 
   const loadSlokaDetail = useCallback(
     async (slokaId: string, sourceRoute: Route = "library") => {
@@ -596,7 +577,6 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
         const payload = (await response.json()) as { sloka?: Sloka };
         if (!payload.sloka) throw new Error("Sloka data missing.");
         await fadeOutAmbientDrone();
-        setAmbientEnabled(false);
         setSelectedSloka(payload.sloka);
         setDetailBackRoute(sourceRoute);
         setRoute("detail");
@@ -607,178 +587,33 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
     [fadeOutAmbientDrone, setDetailBackRoute, setSelectedSloka, setRoute],
   );
 
-  const stopSpeech = useCallback(() => {
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
-    speechRunRef.current += 1;
-    window.speechSynthesis.cancel();
-    setIsSpeaking(false);
-  }, []);
-
-  const speakText = useCallback(
-    (text: string, options?: { rate?: number; pitch?: number }) => {
-      const speechText = text.trim();
-      if (!speechText) return false;
-      if (
-        typeof window === "undefined" ||
-        !("speechSynthesis" in window) ||
-        typeof window.SpeechSynthesisUtterance === "undefined"
-      ) {
-        setLiveMessage("Audio is not supported in this browser.");
-        return false;
-      }
-
-      const speechApi = window.speechSynthesis;
-      const runId = speechRunRef.current + 1;
-      speechRunRef.current = runId;
-      speechApi.cancel();
-      const chunks = buildSpeechChunks(speechText);
-      const voices = speechApi.getVoices();
-      const sortedVoices = [...voices].sort((left, right) => scoreVoice(right) - scoreVoice(left));
-      const preferredVoice =
-        (selectedVoiceUri ? voices.find((voice) => voice.voiceURI === selectedVoiceUri) : null) ?? sortedVoices[0] ?? null;
-
-      chunks.forEach((chunk, index) => {
-        const utterance = new SpeechSynthesisUtterance(chunk);
-        utterance.rate = options?.rate ?? 0.86;
-        utterance.pitch = options?.pitch ?? 1;
-        if (preferredVoice) {
-          utterance.voice = preferredVoice;
-          utterance.lang = preferredVoice.lang;
-        } else {
-          utterance.lang = "en-IN";
-        }
-        if (index === 0) {
-          utterance.onstart = () => {
-            if (runId === speechRunRef.current) setIsSpeaking(true);
-          };
-        }
-        utterance.onend = () => {
-          if (index === chunks.length - 1 && runId === speechRunRef.current) setIsSpeaking(false);
-        };
-        utterance.onerror = () => {
-          if (runId === speechRunRef.current) {
-            setIsSpeaking(false);
-            setLiveMessage("Audio playback failed. Please try again.");
-          }
-        };
-        speechApi.speak(utterance);
-      });
-
-      return true;
-    },
-    [selectedVoiceUri],
-  );
-
-  const getLineSpeechText = useCallback(
-    (line: SlokaLineItem): string => {
-      const selectedLocale = selectedVoice?.lang.toLowerCase() ?? "en-in";
-      if (selectedLocale.startsWith("ta") && TAMIL_SCRIPT_PATTERN.test(line.tamil)) {
-        return normalizeSpeechText(line.tamil, selectedLocale);
-      }
-      return normalizeSpeechText(getLinePronunciationText(line), selectedLocale);
-    },
-    [getLinePronunciationText, selectedVoice],
-  );
-
-  const playLineAudio = useCallback(
-    (line: SlokaLineItem) => {
-      const speechText = getLineSpeechText(line);
-      if (speakText(speechText, { rate: 0.88 })) {
-        setLiveMessage("Playing line audio.");
-      }
-    },
-    [getLineSpeechText, speakText],
-  );
-
-  const playWordAudio = useCallback(
-    (word: string) => {
-      const selectedLocale = selectedVoice?.lang.toLowerCase() ?? "en-in";
-      const text = normalizeSpeechText(word, selectedLocale);
-      if (speakText(text, { rate: 0.78, pitch: 1.02 })) {
-        setLiveMessage(`Word: ${word}`);
-      }
-    },
-    [selectedVoice, speakText],
-  );
-
-  const continueFromStartPrompt = useCallback(() => {
-    setHomeSearch(startPromptQuery.trim());
+  const continueFromStartPrompt = useCallback(async () => {
+    const query = startPromptQuery.trim();
     setHomeDurationMax(startPromptDuration);
+
+    if (query.length > 0) {
+      const matches = findMatchingSlokas(query);
+      if (matches.length > 0) {
+        setHomeSearch(query);
+        setGuidedStart(false);
+        setShowStartPrompt(false);
+        await loadSlokaDetail(matches[0].id, "home");
+        return;
+      }
+    }
+
+    setHomeSearch(query);
     setGuidedStart(true);
     setShowStartPrompt(false);
     setRoute("home");
-  }, [startPromptDuration, startPromptQuery]);
+  }, [findMatchingSlokas, loadSlokaDetail, startPromptDuration, startPromptQuery]);
 
-  const stopAmbientDrone = useCallback(() => {
-    if (typeof window === "undefined") return;
-    const audios = [landingAudioRef.current, landingWaterfallAudioRef.current].filter(
-      (audio): audio is HTMLAudioElement => Boolean(audio),
-    );
-    audios.forEach((audio) => {
-      audio.pause();
-      try {
-        audio.currentTime = 0;
-      } catch {
-        // no-op
-      }
-    });
+  const decreaseReaderFontScale = useCallback(() => {
+    setReaderFontScale((value) => Math.max(0.5, Number((value - 0.05).toFixed(2))));
   }, []);
 
-  const startAmbientDrone = useCallback(async (): Promise<boolean> => {
-    if (typeof window === "undefined") return false;
-    if (!landingAudioRef.current) {
-      const audio = new Audio(LANDING_OM_AUDIO_SRC);
-      audio.loop = true;
-      audio.preload = "metadata";
-      audio.volume = LANDING_OM_AUDIO_VOLUME;
-      (audio as HTMLAudioElement & { playsInline?: boolean }).playsInline = true;
-      landingAudioRef.current = audio;
-    }
-    if (!landingWaterfallAudioRef.current) {
-      const waterfallAudio = new Audio(LANDING_WATERFALL_AUDIO_SRC);
-      waterfallAudio.loop = true;
-      waterfallAudio.preload = "none";
-      waterfallAudio.volume = LANDING_WATERFALL_AUDIO_VOLUME;
-      (waterfallAudio as HTMLAudioElement & { playsInline?: boolean }).playsInline = true;
-      waterfallAudio.addEventListener("error", () => {
-        landingWaterfallFailedRef.current = true;
-      });
-      landingWaterfallAudioRef.current = waterfallAudio;
-    }
-
-    const omAudio = landingAudioRef.current;
-    const waterfallAudio = landingWaterfallAudioRef.current;
-    if (!omAudio) return false;
-    if (!omAudio.paused && (landingWaterfallFailedRef.current || !waterfallAudio || !waterfallAudio.paused)) return true;
-
-    const playWarm = async (audio: HTMLAudioElement, targetVolume: number): Promise<boolean> => {
-      if (!audio.paused) return true;
-      audio.volume = targetVolume;
-      // Best effort for autoplay policies: start muted, then fade in audible volume.
-      audio.muted = true;
-      try {
-        await audio.play();
-        window.setTimeout(() => {
-          audio.muted = false;
-          audio.volume = targetVolume;
-        }, 180);
-        return true;
-      } catch {
-        audio.muted = false;
-        return false;
-      }
-    };
-
-    const omStarted = await playWarm(omAudio, LANDING_OM_AUDIO_VOLUME);
-    // Start the secondary ambience after Om so initial paint/audio feels faster.
-    if (!landingWaterfallFailedRef.current && waterfallAudio) {
-      window.setTimeout(() => {
-        void playWarm(waterfallAudio, LANDING_WATERFALL_AUDIO_VOLUME).then((started) => {
-          if (!started) landingWaterfallFailedRef.current = true;
-        });
-      }, 900);
-    }
-    return omStarted;
+  const increaseReaderFontScale = useCallback(() => {
+    setReaderFontScale((value) => Math.min(1.2, Number((value + 0.05).toFixed(2))));
   }, []);
 
   /* eslint-disable react-hooks/set-state-in-effect */
@@ -786,7 +621,6 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
     if (typeof window === "undefined") return;
     const todayDateKey = getDateKey(new Date());
     const persistedFavorites = safeParse<string[]>(window.localStorage.getItem(STORAGE_KEYS.favorites), []);
-    const persistedVoiceUri = window.localStorage.getItem(STORAGE_KEYS.voiceUri) ?? "";
     const persistedProgress = safeParse<ChantProgress>(
       window.localStorage.getItem(STORAGE_KEYS.chantProgress),
       DEFAULT_CHANT_PROGRESS,
@@ -795,25 +629,85 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
       window.localStorage.getItem(STORAGE_KEYS.reminders),
       DEFAULT_REMINDERS,
     );
+    const persistedReaderPrefs = safeParse<ReaderPrefs>(
+      window.localStorage.getItem(STORAGE_KEYS.readerPrefs),
+      DEFAULT_READER_PREFS,
+    );
 
     setFavorites(new Set(persistedFavorites));
-    setSelectedVoiceUri(persistedVoiceUri);
     setChantProgress(normalizeProgressForToday(persistedProgress, todayDateKey));
     setReminders(normalizeReminderSettings(persistedReminders));
+    setReaderFontScale(
+      Math.min(0.9, Math.max(0.5, Number.isFinite(persistedReaderPrefs.fontScale) ? persistedReaderPrefs.fontScale : 0.68)),
+    );
+    setReaderLanguage(
+      persistedReaderPrefs.language === "tamil" || persistedReaderPrefs.language === "english"
+        ? persistedReaderPrefs.language
+        : "both",
+    );
+    setShowMeaning(typeof persistedReaderPrefs.showMeaning === "boolean" ? persistedReaderPrefs.showMeaning : true);
     setTodayDay(WEEK_DAYS[new Date().getDay()]);
     setIsHydrated(true);
   }, []);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   useEffect(() => {
-    if (!isHydrated || typeof window === "undefined") return;
-    window.localStorage.setItem(STORAGE_KEYS.favorites, JSON.stringify(Array.from(favorites)));
-  }, [favorites, isHydrated]);
+    let isCancelled = false;
+    const getUserCoordinates = async (): Promise<{ lat: number; lon: number } | null> => {
+      if (typeof navigator === "undefined" || !navigator.geolocation) return null;
+      return await new Promise((resolve) => {
+        const timeout = window.setTimeout(() => resolve(null), 1800);
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            window.clearTimeout(timeout);
+            resolve({
+              lat: position.coords.latitude,
+              lon: position.coords.longitude,
+            });
+          },
+          () => {
+            window.clearTimeout(timeout);
+            resolve(null);
+          },
+          { enableHighAccuracy: false, timeout: 1500, maximumAge: 5 * 60 * 1000 },
+        );
+      });
+    };
+
+    const loadTodayCalendar = async () => {
+      try {
+        const timezone =
+          (typeof Intl !== "undefined" ? Intl.DateTimeFormat().resolvedOptions().timeZone : undefined) || "Asia/Kolkata";
+        const coords = await getUserCoordinates();
+        const params = new URLSearchParams();
+        params.set("tz", timezone);
+        params.set("label", `Your Location (${timezone})`);
+        if (coords) {
+          params.set("lat", `${coords.lat}`);
+          params.set("lon", `${coords.lon}`);
+        }
+
+        const response = await fetch(`/api/calendar/today?${params.toString()}`);
+        if (!response.ok) return;
+        const payload = (await response.json()) as { today?: TamilCalendarToday };
+        if (!isCancelled && payload.today) {
+          setTodayCalendar(payload.today);
+          setTodayDay(payload.today.weekday);
+        }
+      } catch {
+        // Keep fallback weekday-based behavior when API fails.
+      }
+    };
+    void loadTodayCalendar();
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (!isHydrated || typeof window === "undefined") return;
-    window.localStorage.setItem(STORAGE_KEYS.voiceUri, selectedVoiceUri);
-  }, [isHydrated, selectedVoiceUri]);
+    window.localStorage.setItem(STORAGE_KEYS.favorites, JSON.stringify(Array.from(favorites)));
+  }, [favorites, isHydrated]);
 
   useEffect(() => {
     if (!isHydrated || typeof window === "undefined") return;
@@ -824,6 +718,16 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
     if (!isHydrated || typeof window === "undefined") return;
     window.localStorage.setItem(STORAGE_KEYS.reminders, JSON.stringify(reminders));
   }, [isHydrated, reminders]);
+
+  useEffect(() => {
+    if (!isHydrated || typeof window === "undefined") return;
+    const prefs: ReaderPrefs = {
+      fontScale: readerFontScale,
+      language: readerLanguage,
+      showMeaning,
+    };
+    window.localStorage.setItem(STORAGE_KEYS.readerPrefs, JSON.stringify(prefs));
+  }, [isHydrated, readerFontScale, readerLanguage, showMeaning]);
 
   useEffect(() => {
     if (!isHydrated || !reminders.enabled) return;
@@ -855,31 +759,6 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
   }, [isHydrated, reminders, selectedSloka.title]);
 
   useEffect(() => {
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
-    const speechApi = window.speechSynthesis;
-    const loadVoices = () => {
-      const voices = speechApi.getVoices();
-      if (voices.length === 0) return;
-      const sortedVoices = [...voices].sort((left, right) => scoreVoice(right) - scoreVoice(left));
-      setVoiceOptions(sortedVoices);
-      setSelectedVoiceUri((previous) => previous || sortedVoices[0]?.voiceURI || "");
-    };
-
-    loadVoices();
-    speechApi.addEventListener?.("voiceschanged", loadVoices);
-    speechApi.onvoiceschanged = loadVoices;
-
-    return () => {
-      speechApi.removeEventListener?.("voiceschanged", loadVoices);
-      if (speechApi.onvoiceschanged === loadVoices) speechApi.onvoiceschanged = null;
-    };
-  }, []);
-
-  useEffect(() => {
-    return () => stopSpeech();
-  }, [stopSpeech]);
-
-  useEffect(() => {
     if (route !== "home") return;
     const timer = window.setTimeout(() => {
       homeSearchInputRef.current?.focus();
@@ -887,39 +766,17 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
     return () => window.clearTimeout(timer);
   }, [route]);
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (route === "detail" || !ambientEnabled) {
-      stopAmbientDrone();
-      return;
-    }
-
-    void startAmbientDrone();
-    const unlockAudio = () => {
-      void startAmbientDrone();
-    };
-
-    window.addEventListener("pointerdown", unlockAudio);
-    window.addEventListener("click", unlockAudio);
-    window.addEventListener("touchstart", unlockAudio);
-    window.addEventListener("keydown", unlockAudio);
-    return () => {
-      window.removeEventListener("pointerdown", unlockAudio);
-      window.removeEventListener("click", unlockAudio);
-      window.removeEventListener("touchstart", unlockAudio);
-      window.removeEventListener("keydown", unlockAudio);
-    };
-  }, [ambientEnabled, route, startAmbientDrone, stopAmbientDrone]);
-
-  useEffect(() => {
-    return () => {
-      stopAmbientDrone();
-    };
-  }, [stopAmbientDrone]);
+  const readerScaleStyle = useMemo(
+    () =>
+      ({
+        "--reader-font-scale": readerFontScale,
+      }) as CSSProperties,
+    [readerFontScale],
+  );
 
   return (
     <div className={`app-shell ${route === "landing" ? "landing-mode" : ""}`}>
-      {route !== "landing" && (
+      {route !== "landing" && route !== "detail" && (
         <header className="app-header">
           <div className="brand">
             <span className="brand-mark">S</span>
@@ -935,59 +792,28 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
         {liveMessage && <div className="toast visible">{liveMessage}</div>}
 
         {route === "landing" && (
-          <section
-            className="landing-screen active"
-            onClick={() => {
-              if (ambientEnabled) void startAmbientDrone();
-            }}
-            onPointerDown={() => {
-              if (ambientEnabled) void startAmbientDrone();
-            }}
-            onTouchStart={() => {
-              if (ambientEnabled) void startAmbientDrone();
-            }}
-          >
-            <video autoPlay className="landing-video" loop muted playsInline poster="/deities/shiva.jpg" preload="none">
+          <section className="landing-screen active">
+            <video autoPlay className="landing-video" loop muted playsInline preload="metadata">
               <source src="/media/sloka-hero.mp4" type="video/mp4" />
             </video>
             <div className="landing-overlay" />
             <div className="landing-colorwash" />
             <div className="landing-stars" />
-            <button
-              className={`landing-sound-toggle ${ambientEnabled ? "active" : ""}`}
-              onClick={(event) => {
-                event.stopPropagation();
-                const audio = landingAudioRef.current;
-                const isPlaying = Boolean(audio && !audio.paused);
-                if (!ambientEnabled) {
-                  setAmbientEnabled(true);
-                  void startAmbientDrone();
-                  return;
-                }
-                if (!isPlaying) {
-                  void startAmbientDrone();
-                  return;
-                }
-                setAmbientEnabled(false);
-                stopAmbientDrone();
-              }}
-              onPointerDown={(event) => event.stopPropagation()}
-              type="button"
-            >
-              {ambientEnabled ? "Om On" : "Om Off"}
-            </button>
             <div className="landing-content">
               {!showStartPrompt && (
-                <button
-                  className="landing-ghost-button"
-                  onClick={() => {
-                    if (ambientEnabled) void startAmbientDrone();
-                    setShowStartPrompt(true);
-                  }}
-                  type="button"
-                >
-                  Enter Slokas
-                </button>
+                <article className="landing-greeting-preview">
+                  <h2>Namaste ॐ</h2>
+                  <p>Begin your day with divine chants.</p>
+                  <button
+                    className="landing-ghost-button"
+                    onClick={() => {
+                      setShowStartPrompt(true);
+                    }}
+                    type="button"
+                  >
+                    Enter Slokas
+                  </button>
+                </article>
               )}
             </div>
             {showStartPrompt && (
@@ -1005,7 +831,7 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
                   onClick={(event) => event.stopPropagation()}
                   onSubmit={(event) => {
                     event.preventDefault();
-                    continueFromStartPrompt();
+                    void continueFromStartPrompt();
                   }}
                 >
                   <h3>What slokas are you looking for?</h3>
@@ -1021,7 +847,7 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
                     onKeyDown={(event) => {
                       if (event.key === "Tab" && startPromptSuggestions[0]) {
                         event.preventDefault();
-                        setStartPromptQuery(startPromptSuggestions[0].value);
+                        setStartPromptQuery(startPromptSuggestions[0].title);
                       }
                     }}
                     placeholder="Hanuman Chalisa, Shiva, Durga..."
@@ -1033,14 +859,14 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
                       {startPromptSuggestions.map((suggestion) => (
                         <button
                           className="search-suggestion"
-                          key={`start-suggestion-${suggestion.value}`}
+                          key={`start-suggestion-${suggestion.id}`}
                           onClick={() => {
-                            setStartPromptQuery(suggestion.value);
+                            setStartPromptQuery(suggestion.title);
                             startSearchInputRef.current?.focus();
                           }}
                           type="button"
                         >
-                          {suggestion.value}
+                          {suggestion.title}
                         </button>
                       ))}
                     </div>
@@ -1052,21 +878,21 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
                       onClick={() => setStartPromptDuration(5)}
                       type="button"
                     >
-                      {"<= 5m"}
+                      5 min
                     </button>
                     <button
                       className={`start-chip ${startPromptDuration === 10 ? "active" : ""}`}
                       onClick={() => setStartPromptDuration(10)}
                       type="button"
                     >
-                      {"<= 10m"}
+                      10 min
                     </button>
                     <button
                       className={`start-chip ${startPromptDuration === 15 ? "active" : ""}`}
                       onClick={() => setStartPromptDuration(15)}
                       type="button"
                     >
-                      {"<= 15m"}
+                      15 min
                     </button>
                     <button
                       className={`start-chip ${startPromptDuration === null ? "active" : ""}`}
@@ -1076,9 +902,22 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
                       Any
                     </button>
                   </div>
-                  <div className="start-modal-actions">
+                  <div className="start-modal-actions start-modal-actions-three">
                     <button className="secondary-button" onClick={() => setShowStartPrompt(false)} type="button">
                       Cancel
+                    </button>
+                    <button
+                      className="secondary-button"
+                      onClick={() => {
+                        setStartPromptQuery("");
+                        setShowStartPrompt(false);
+                        setGuidedStart(false);
+                        setHomeSearch("");
+                        setRoute("home");
+                      }}
+                      type="button"
+                    >
+                      Home
                     </button>
                     <button className="landing-start-button" type="submit">
                       Continue
@@ -1092,16 +931,14 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
 
         {route === "home" && (
           <section className="screen active">
-            <article className="event-card">
-              <h2>What sloka are you looking for?</h2>
-              <p>Search by sloka name, deity, or language. Then refine with duration.</p>
-              <label className="field-label" htmlFor="home-search">
+            <article className="event-card dashboard-top-search">
+              <label className="field-label" htmlFor="dashboard-search">
                 Search Sloka
               </label>
               <input
                 autoComplete="off"
                 className="search-input"
-                id="home-search"
+                id="dashboard-search"
                 ref={homeSearchInputRef}
                 onChange={(event) => setHomeSearch(event.target.value)}
                 onKeyDown={(event) => {
@@ -1110,7 +947,7 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
                     setHomeSearch(homeSuggestions[0].value);
                   }
                 }}
-                placeholder="Type sloka name, category, or Tamil text"
+                placeholder="Search sloka name, deity, or Tamil text"
                 value={homeSearch}
               />
               {homeSuggestions.length > 0 && (
@@ -1118,7 +955,7 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
                   {homeSuggestions.map((suggestion) => (
                     <button
                       className="search-suggestion"
-                      key={`home-suggestion-${suggestion.value}`}
+                      key={`dashboard-suggestion-${suggestion.value}`}
                       onClick={() => {
                         setHomeSearch(suggestion.value);
                         homeSearchInputRef.current?.focus();
@@ -1130,45 +967,108 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
                   ))}
                 </div>
               )}
-              <label className="field-label">Duration</label>
-              <div className="chip-row compact">
-                <button
-                  className={`chip ${homeDurationMax === 5 ? "active" : ""}`}
-                  onClick={() => setHomeDurationMax(5)}
-                  type="button"
+            </article>
+
+            <article className="event-card greeting-card">
+              <h2>Namaste 🙏</h2>
+              <p>Begin your day with divine chants.</p>
+            </article>
+
+            <article className="event-card journey-card">
+              <div className="section-heading compact">
+                <h2>Continue Your Journey</h2>
+                <span className="badge">Today</span>
+              </div>
+              <p>{selectedSloka.titleTamil}</p>
+              <div className="journey-progress-row">
+                <div className="journey-linear">
+                  <span style={{ width: `${dailyProgressPercent}%` }} />
+                </div>
+                <div
+                  className="journey-ring"
+                  aria-label={`Daily progress ${dailyProgressPercent}%`}
+                  style={{ ["--progress" as string]: `${dailyProgressPercent}%` } as CSSProperties}
                 >
-                  Up to 5 min
+                  <strong>{dailyProgressPercent}%</strong>
+                </div>
+              </div>
+              <p className={`journey-status ${isDailyTargetCompleted ? "completed" : ""}`}>
+                {isDailyTargetCompleted
+                  ? `Completed today (${chantProgress.dailyCount}/${chantProgress.dailyTarget})`
+                  : `${remainingDailyChants} chants remaining today (${chantProgress.dailyCount}/${chantProgress.dailyTarget})`}
+              </p>
+              <div className="journey-actions">
+                <button className="secondary-button" onClick={() => logChantCount(selectedSloka.id, 1)} type="button">
+                  +1 Chant Done
                 </button>
-                <button
-                  className={`chip ${homeDurationMax === 10 ? "active" : ""}`}
-                  onClick={() => setHomeDurationMax(10)}
-                  type="button"
-                >
-                  Up to 10 min
-                </button>
-                <button
-                  className={`chip ${homeDurationMax === 15 ? "active" : ""}`}
-                  onClick={() => setHomeDurationMax(15)}
-                  type="button"
-                >
-                  Up to 15 min
-                </button>
-                <button
-                  className={`chip ${homeDurationMax === null ? "active" : ""}`}
-                  onClick={() => setHomeDurationMax(null)}
-                  type="button"
-                >
-                  Any length
+                <button className="secondary-button" onClick={() => setRoute("sessions")} type="button">
+                  Open Tracker
                 </button>
               </div>
-              <div className="action-row">
-                <button className="primary-button" onClick={() => setRoute("library")} type="button">
-                  Open Library
-                </button>
-                <button className="secondary-button" onClick={() => setRoute("gods")} type="button">
-                  Browse by Gods
-                </button>
+            </article>
+
+            <article className="event-card">
+              <div className="section-heading compact">
+                <h2>Start Chanting</h2>
               </div>
+              <div className="deity-quick-row" role="list" aria-label="Quick deity selection">
+                {deityHighlights.slice(0, 8).map((deity) => (
+                  <button
+                    className="deity-quick-chip"
+                    key={`quick-${deity.category}`}
+                    onClick={() => {
+                      setGodsCategory(deity.category);
+                      setRoute("gods");
+                    }}
+                    type="button"
+                  >
+                    <Image
+                      alt={`${deity.category} icon`}
+                      className="deity-quick-image"
+                      height={42}
+                      sizes="42px"
+                      src={DEITY_PHOTOS[deity.category] ?? DEITY_PHOTOS.Shiva}
+                      unoptimized
+                      width={42}
+                    />
+                    <span>{deity.category}</span>
+                  </button>
+                ))}
+              </div>
+            </article>
+
+            <article className="event-card today-card">
+              <div className="today-head">
+                <div>
+                  <h2>Today in Tamil Calendar</h2>
+                  <p>{todayCalendar ? `${todayCalendar.weekday}, ${todayCalendar.date}` : "Loading today's details..."}</p>
+                </div>
+                <span className="badge">{todayCalendar?.highlight ?? "Daily Panchang"}</span>
+              </div>
+              <div className="today-grid">
+                <div className="today-cell">
+                  <small>Tithi</small>
+                  <strong>{todayCalendar?.tithi ?? "..."}</strong>
+                </div>
+                <div className="today-cell">
+                  <small>Paksha</small>
+                  <strong>{todayCalendar?.paksha ?? "..."}</strong>
+                </div>
+                <div className="today-cell">
+                  <small>Masa</small>
+                  <strong>{todayCalendar?.masa ?? "..."}</strong>
+                </div>
+              </div>
+              {todayCalendar && todayCalendar.festivals.length > 0 && (
+                <div className="today-festival-row">
+                  {todayCalendar.festivals.slice(0, 2).map((festival) => (
+                    <span className="festival-pill" key={`today-festival-${festival.name}`}>
+                      {festival.name}
+                    </span>
+                  ))}
+                </div>
+              )}
+              <p className="mini-muted">{todayCalendar?.location ?? "Tamil Panchang context for daily chanting"}</p>
             </article>
 
             {homeSearch.trim().length > 0 || guidedStart ? (
@@ -1352,17 +1252,145 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
           </section>
         )}
 
-        {route === "practice" && (
+        {route === "calendar" && (
           <section className="screen active">
             <div className="screen-top">
               <button className="icon-button" onClick={() => setRoute("home")} type="button" title="Back">
                 {"<"}
               </button>
               <div>
-                <h1>Practice</h1>
-                <p>Track counts, reminders, and weekly recommendations.</p>
+                <h1>Panchangam</h1>
+                <p>Tamil calendar and auspicious daily details.</p>
               </div>
             </div>
+
+            <article className="event-card today-card">
+              <div className="today-head">
+                <div>
+                  <h2>Today in Tamil Calendar</h2>
+                  <p>{todayCalendar ? `${todayCalendar.weekday}, ${todayCalendar.date}` : "Loading today's details..."}</p>
+                </div>
+                <span className="badge">{todayCalendar?.highlight ?? "Daily Panchang"}</span>
+              </div>
+              <div className="today-grid">
+                <div className="today-cell">
+                  <small>Tithi</small>
+                  <strong>{todayCalendar?.tithi ?? "..."}</strong>
+                </div>
+                <div className="today-cell">
+                  <small>Paksha</small>
+                  <strong>{todayCalendar?.paksha ?? "..."}</strong>
+                </div>
+                <div className="today-cell">
+                  <small>Masa</small>
+                  <strong>{todayCalendar?.masa ?? "..."}</strong>
+                </div>
+              </div>
+              {todayCalendar && todayCalendar.festivals.length > 0 && (
+                <div className="today-festival-row">
+                  {todayCalendar.festivals.map((festival) => (
+                    <span className="festival-pill" key={`calendar-festival-${festival.name}`}>
+                      {festival.name}
+                    </span>
+                  ))}
+                </div>
+              )}
+              <p className="mini-muted">{todayCalendar?.location ?? "Tamil Panchang context for daily chanting"}</p>
+            </article>
+
+            <article className="event-card section-stack">
+              <h3>Daily Panchang Snapshot</h3>
+              <ul className="calendar-detail-list">
+                <li>
+                  <span>Weekday</span>
+                  <strong>{todayCalendar?.weekday ?? todayDay ?? "..."}</strong>
+                </li>
+                <li>
+                  <span>Auspicious Focus</span>
+                  <strong>{todayCalendar?.highlight ?? "General prayer day"}</strong>
+                </li>
+                <li>
+                  <span>Best Place</span>
+                  <strong>{todayCalendar?.location ?? "Your current location"}</strong>
+                </li>
+              </ul>
+            </article>
+
+            <article className="recommendation-card section-stack">
+              <h3>Recommended Slokas for Today</h3>
+              {todayRecommendedSlokas.length > 0 ? (
+                <ul className="top-list">
+                  {todayRecommendedSlokas.map((sloka) => (
+                    <li key={`calendar-reco-${sloka.id}`}>
+                      <strong>{sloka.title}</strong>
+                      <span>{SLOKA_RECOMMENDATIONS[sloka.id]?.days.join(", ")}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p>No special day-specific recommendation today. You can chant any favorite sloka.</p>
+              )}
+            </article>
+          </section>
+        )}
+
+        {route === "sessions" && (
+          <section className="screen active">
+            <div className="screen-top">
+              <button className="icon-button" onClick={() => setRoute("home")} type="button" title="Back">
+                {"<"}
+              </button>
+              <div>
+                <h1>Sessions</h1>
+                <p>Pick duration, track chanting, and keep reminders in one place.</p>
+              </div>
+            </div>
+
+            <article className="event-card">
+              <h3>Create Session</h3>
+              <p>How much time do you have?</p>
+              <div className="session-time-grid">
+                {[5, 10, 15].map((duration) => (
+                  <button
+                    className={`session-time-chip ${sessionDuration === duration ? "active" : ""}`}
+                    key={`session-time-${duration}`}
+                    onClick={() => setSessionDuration(duration)}
+                    type="button"
+                  >
+                    {duration} min
+                  </button>
+                ))}
+                <button className="session-time-chip" type="button">
+                  Custom
+                </button>
+              </div>
+              <article className="smart-suggestion-box">
+                <p>We will choose the best slokas for a peaceful {sessionDuration} minute session.</p>
+              </article>
+              <button className="primary-button full" onClick={() => setRoute("library")} type="button">
+                Start Chanting
+              </button>
+            </article>
+
+            <article className="event-card session-preview-card">
+              <div className="session-preview-top">
+                <span>Session Preview</span>
+                <small>{sessionDuration} min</small>
+              </div>
+              <div className="session-preview-avatar">
+                <Image
+                  alt={`${selectedSloka.category} deity`}
+                  className="session-preview-image"
+                  height={140}
+                  sizes="140px"
+                  src={DEITY_PHOTOS[selectedSloka.category] ?? DEITY_PHOTOS.Shiva}
+                  unoptimized
+                  width={140}
+                />
+              </div>
+              <h3>{selectedSloka.title}</h3>
+              <p>{selectedSloka.titleTamil}</p>
+            </article>
 
             <article className="event-card">
               <h3>Your Chant Progress</h3>
@@ -1624,160 +1652,82 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
           </section>
         )}
 
-        {route === "detail" && (
+        {route === "profile" && (
           <section className="screen active">
             <div className="screen-top">
-              <button className="icon-button" onClick={() => setRoute(detailBackRoute)} type="button" title="Back">
+              <button className="icon-button" onClick={() => setRoute("home")} type="button" title="Back">
                 {"<"}
               </button>
               <div>
-                <h1>{selectedSloka.title}</h1>
-                <p>{selectedSloka.titleTamil} | {selectedSloka.category} | {selectedSloka.duration}</p>
+                <h1>Profile</h1>
+                <p>Your chanting progress and settings.</p>
               </div>
             </div>
 
-            <article className="event-card section-stack">
-              <h3>Quick Actions</h3>
-              <div className="simple-action-list">
-                <button
-                  className={`simple-action-button ${favorites.has(selectedSloka.id) ? "active" : ""}`}
-                  onClick={() => toggleFavorite(selectedSloka.id)}
-                  type="button"
-                >
-                  <span className="simple-action-main">
-                    <span className="simple-action-icon">
-                      <QuickActionGlyph icon="favorite" />
-                    </span>
-                    <span className="simple-action-label">Favorite</span>
-                  </span>
-                  <span className="simple-action-state">{favorites.has(selectedSloka.id) ? "Saved" : "Off"}</span>
+            <article className="event-card">
+              <h3>Progress Summary</h3>
+              <div className="stats-grid">
+                <div className="metric-box">
+                  <h3>{chantProgress.streakDays}</h3>
+                  <p>Streak Days</p>
+                </div>
+                <div className="metric-box">
+                  <h3>{chantProgress.totalCount}</h3>
+                  <p>Total Chants</p>
+                </div>
+                <div className="metric-box">
+                  <h3>{favorites.size}</h3>
+                  <p>Favorites</p>
+                </div>
+              </div>
+              <div className="action-row">
+                <button className="secondary-button" onClick={() => setRoute("calendar")} type="button">
+                  Open Panchangam
                 </button>
-                <button className="simple-action-button" onClick={() => setRoute("favorites")} type="button">
-                  <span className="simple-action-main">
-                    <span className="simple-action-icon">
-                      <QuickActionGlyph icon="favorites" />
-                    </span>
-                    <span className="simple-action-label">Open Favorites</span>
-                  </span>
-                  <span className="simple-action-state">{">"}</span>
-                </button>
-                <button
-                  className={`simple-action-button ${showPronunciation ? "active" : ""}`}
-                  onClick={() => setShowPronunciation((value) => !value)}
-                  disabled={!hasPronunciationData}
-                  type="button"
-                >
-                  <span className="simple-action-main">
-                    <span className="simple-action-icon">
-                      <QuickActionGlyph icon="pronunciation" />
-                    </span>
-                    <span className="simple-action-label">Pronunciation</span>
-                  </span>
-                  <span className="simple-action-state">{showPronunciation ? "On" : "Off"}</span>
-                </button>
-                <button
-                  className={`simple-action-button ${wordByWordMode ? "active" : ""}`}
-                  onClick={() => setWordByWordMode((value) => !value)}
-                  disabled={!hasPronunciationData}
-                  type="button"
-                >
-                  <span className="simple-action-main">
-                    <span className="simple-action-icon">
-                      <QuickActionGlyph icon="word" />
-                    </span>
-                    <span className="simple-action-label">Word Mode</span>
-                  </span>
-                  <span className="simple-action-state">{wordByWordMode ? "On" : "Off"}</span>
-                </button>
-                <button className="simple-action-button" onClick={() => logChantCount(selectedSloka.id, 1)} type="button">
-                  <span className="simple-action-main">
-                    <span className="simple-action-icon">
-                      <QuickActionGlyph icon="chant1" />
-                    </span>
-                    <span className="simple-action-label">Mark Chant</span>
-                  </span>
-                  <span className="simple-action-state">+1</span>
-                </button>
-                <button className="simple-action-button" onClick={() => logChantCount(selectedSloka.id, 11)} type="button">
-                  <span className="simple-action-main">
-                    <span className="simple-action-icon">
-                      <QuickActionGlyph icon="chant11" />
-                    </span>
-                    <span className="simple-action-label">Mark Chant</span>
-                  </span>
-                  <span className="simple-action-state">+11</span>
+                <button className="secondary-button" onClick={() => setRoute("sessions")} type="button">
+                  Session Tools
                 </button>
               </div>
-              {!hasPronunciationData && (
-                <p className="mini-muted">Pronunciation controls are available for slokas that include pronunciation lines.</p>
-              )}
+            </article>
+          </section>
+        )}
+
+        {route === "detail" && (
+          <section className="screen active detail-screen ref-player-screen" style={readerScaleStyle}>
+            <article className="ref-player-main-card">
+              <div className="ref-player-top-half">
+                <header className="ref-player-header">
+                  <button className="ref-player-header-icon" onClick={() => setRoute(detailBackRoute)} title="Back" type="button">
+                    <BackGlyph />
+                  </button>
+                  <span className="ref-player-header-spacer" aria-hidden="true" />
+                  <span className="ref-player-header-spacer" aria-hidden="true" />
+                </header>
+
+                <PlayerHeroCard
+                  imageSrc={DEITY_PLAYER_HERO_PHOTOS[selectedSloka.category] ?? DEITY_PHOTOS[selectedSloka.category] ?? DEITY_PHOTOS.Shiva}
+                  deityName={selectedSloka.category}
+                />
+              </div>
+
+              <ShlokaTextBlock
+                language={readerLanguage}
+                lines={selectedSloka.lines}
+                showMeaning={showMeaning}
+                title={selectedSloka.title}
+              />
+              <div className="ref-player-bottom-divider" aria-hidden="true" />
+
+              <ReaderControls
+                language={readerLanguage}
+                onDecreaseFont={decreaseReaderFontScale}
+                onIncreaseFont={increaseReaderFontScale}
+                onSetLanguage={setReaderLanguage}
+                onToggleMeaning={() => setShowMeaning((value) => !value)}
+                showMeaning={showMeaning}
+              />
             </article>
 
-            {selectedRecommendation && (
-              <article className="recommendation-card section-stack">
-                <h3>Best Weekly Days</h3>
-                <p>{selectedRecommendation.days.join(", ")}</p>
-                <p>{selectedRecommendation.reason}</p>
-              </article>
-            )}
-
-            <div className="voice-control">
-              <label className="field-label" htmlFor="voice-select-detail">
-                Accent voice
-              </label>
-              <select
-                className="voice-select"
-                id="voice-select-detail"
-                onChange={(event) => setSelectedVoiceUri(event.target.value)}
-                value={selectedVoiceUri}
-              >
-                {voiceOptions.length === 0 && <option value="">Loading system voices...</option>}
-                {voiceOptions.map((voice) => (
-                  <option key={voice.voiceURI} value={voice.voiceURI}>
-                    {voice.name} ({voice.lang}){isLikelyIndianVoice(voice) ? " - Indian" : ""}
-                  </option>
-                ))}
-              </select>
-              <p className="voice-help">Pick the clearest voice for your pronunciation style.</p>
-              <p className="mini-muted">{isSpeaking ? "Audio is playing..." : "Tap Play on any line below."}</p>
-            </div>
-
-            <div className="reader-card">
-              {selectedSloka.lines.map((line, index) => {
-                const pronunciationText = getLinePronunciationText(line);
-                return (
-                  <article className="line-block" key={`${selectedSloka.id}-${index + 1}`}>
-                    <strong>
-                      {index + 1}. {line.tamil}
-                    </strong>
-                    <span>{line.english}</span>
-                    {showPronunciation && pronunciationText && (
-                      <>
-                        <p className="pronunciation-line">Pronunciation: {pronunciationText}</p>
-                        <button className="word-audio-button" onClick={() => playLineAudio(line)} type="button">
-                          Play Line Audio
-                        </button>
-                        {wordByWordMode && (
-                          <div className="word-chip-row">
-                            {getPronunciationWords(pronunciationText).map((word, wordIndex) => (
-                              <button
-                                className="word-chip"
-                                key={`${selectedSloka.id}-${index + 1}-word-${wordIndex}`}
-                                onClick={() => playWordAudio(word)}
-                                type="button"
-                              >
-                                {word}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </>
-                    )}
-                    <small>{line.meaning}</small>
-                  </article>
-                );
-              })}
-            </div>
           </section>
         )}
 
@@ -1802,22 +1752,22 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
         )}
       </main>
 
-      {route !== "landing" && (
+      {route !== "landing" && route !== "detail" && (
         <nav className="bottom-nav" aria-label="Primary">
           <button className={route === "home" ? "active" : ""} onClick={() => setRoute("home")} type="button">
             Home
           </button>
-          <button className={route === "practice" ? "active" : ""} onClick={() => setRoute("practice")} type="button">
-            Practice
-          </button>
-          <button className={route === "gods" ? "active" : ""} onClick={() => setRoute("gods")} type="button">
-            Gods
-          </button>
           <button className={route === "library" ? "active" : ""} onClick={() => setRoute("library")} type="button">
-            Library
+            Shlokas
+          </button>
+          <button className={route === "sessions" ? "active" : ""} onClick={() => setRoute("sessions")} type="button">
+            Sessions
           </button>
           <button className={route === "favorites" ? "active" : ""} onClick={() => setRoute("favorites")} type="button">
             Favorites
+          </button>
+          <button className={route === "profile" ? "active" : ""} onClick={() => setRoute("profile")} type="button">
+            Profile
           </button>
         </nav>
       )}
