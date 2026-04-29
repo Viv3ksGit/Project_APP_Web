@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type SVGProps } from "react";
 import Image from "next/image";
 import Sanscript from "@indic-transliteration/sanscript";
 import type { Sloka, SlokaSummary } from "@/lib/domain/types";
@@ -422,6 +422,67 @@ function SlokaTile({ sloka }: { sloka: SlokaSummary }) {
   }
 
   return <span className="tile">{sloka.category.slice(0, 2).toUpperCase()}</span>;
+}
+
+function LotusBrandIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 48 48" {...props}>
+      <path d="M24 36c-6.5-5.3-8-12.6 0-22 8 9.4 6.5 16.7 0 22Z" fill="currentColor" />
+      <path d="M15 35c-5.7-3.1-7.8-8.8-5.8-15.7 6.4 2.6 9.3 7.7 5.8 15.7Z" fill="currentColor" opacity="0.72" />
+      <path d="M33 35c5.7-3.1 7.8-8.8 5.8-15.7-6.4 2.6-9.3 7.7-5.8 15.7Z" fill="currentColor" opacity="0.72" />
+      <path d="M24 38c-7.4 0-13.5-2.1-18-6.3 6.5-.9 12.3.4 18 4.1 5.7-3.7 11.5-5 18-4.1-4.5 4.2-10.6 6.3-18 6.3Z" fill="currentColor" opacity="0.42" />
+      <path d="M13 41h22" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="2" opacity="0.55" />
+    </svg>
+  );
+}
+
+function RitualNavIcon({ name }: { name: "chants" | "counter" | "home" | "menu" | "profile" }) {
+  if (name === "home") {
+    return (
+      <svg aria-hidden="true" viewBox="0 0 24 24">
+        <path d="M4 11.5 12 5l8 6.5" />
+        <path d="M6.5 10.5V20h11v-9.5" />
+        <path d="M9.5 20v-5h5v5" />
+      </svg>
+    );
+  }
+
+  if (name === "chants") {
+    return (
+      <svg aria-hidden="true" viewBox="0 0 24 24">
+        <path d="M9 18.5V6.5l9-2v12" />
+        <path d="M9 18.5c0 1.4-1.3 2.5-3 2.5s-3-1.1-3-2.5S4.3 16 6 16s3 1.1 3 2.5Z" />
+        <path d="M18 16.5c0 1.4-1.3 2.5-3 2.5s-3-1.1-3-2.5 1.3-2.5 3-2.5 3 1.1 3 2.5Z" />
+      </svg>
+    );
+  }
+
+  if (name === "counter") {
+    return (
+      <svg aria-hidden="true" viewBox="0 0 24 24">
+        <path d="M12 4a8 8 0 1 1-7.6 5.5" />
+        <path d="M4 4v5h5" />
+        <path d="M12 8v4l2.5 2.5" />
+      </svg>
+    );
+  }
+
+  if (name === "profile") {
+    return (
+      <svg aria-hidden="true" viewBox="0 0 24 24">
+        <path d="M12 12.5a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" />
+        <path d="M4.5 20c1.2-3.3 3.7-5 7.5-5s6.3 1.7 7.5 5" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24">
+      <path d="M5 7h14" />
+      <path d="M5 12h14" />
+      <path d="M5 17h14" />
+    </svg>
+  );
 }
 
 export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
@@ -1233,10 +1294,12 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
       {route !== "landing" && route !== "detail" && (
         <header className="app-header">
           <div className="brand">
-            <span className="brand-mark">S</span>
+            <span className="brand-mark">
+              <LotusBrandIcon />
+            </span>
             <div>
-              <strong>Sloka Sabha</strong>
-              <span>Search, read, and save favorites</span>
+              <strong>My Shloka Ritual</strong>
+              <span>Daily chants for inner calm</span>
             </div>
           </div>
         </header>
@@ -1413,6 +1476,45 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
 
         {route === "home" && (
           <section className="screen active">
+            <section className="ritual-home-hero" aria-label="My Shloka Ritual home">
+              <div className="ritual-home-logo" aria-hidden="true">
+                <LotusBrandIcon />
+              </div>
+              <div>
+                <p className="ritual-eyebrow">Good Morning</p>
+                <h1>My Shloka Ritual</h1>
+                <p>Daily chants for inner calm</p>
+              </div>
+            </section>
+
+            <article className="event-card ritual-dashboard-card">
+              <div className="ritual-stat-block">
+                <span className="ritual-stat-label">Daily Streak</span>
+                <strong>{chantProgress.streakDays}</strong>
+                <small>days</small>
+              </div>
+              <div
+                className="ritual-goal-ring"
+                aria-label={`Today goal ${dailyProgressPercent}% complete`}
+                style={{ ["--progress" as string]: `${dailyProgressPercent}%` } as CSSProperties}
+              >
+                <LotusBrandIcon />
+              </div>
+              <div className="ritual-stat-block right">
+                <span className="ritual-stat-label">Today's Goal</span>
+                <strong>{chantProgress.dailyTarget}</strong>
+                <small>chants</small>
+                <button className="ritual-mini-pill" onClick={() => setRoute("sessions")} type="button">
+                  Edit Goal
+                </button>
+              </div>
+            </article>
+
+            <article className="ritual-quote-card">
+              <p>Let the divine words sustain your mind and soothe your soul.</p>
+              <span aria-hidden="true" />
+            </article>
+
             <article className="event-card dashboard-top-search">
               <label className="field-label" htmlFor="dashboard-search">
                 Search Sloka
@@ -1451,12 +1553,12 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
               )}
             </article>
 
-            <article className="event-card greeting-card">
+            <article className="event-card greeting-card ritual-legacy-greeting">
               <h2>Namaste 🙏</h2>
               <p>Begin your day with divine chants.</p>
             </article>
 
-            <article className="event-card journey-card">
+            <article className="event-card journey-card ritual-continue-card">
               <div className="section-heading compact">
                 <h2>Continue Your Journey</h2>
                 <span className="badge">Today</span>
@@ -1486,6 +1588,21 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
                 <button className="secondary-button" onClick={() => setRoute("sessions")} type="button">
                   Open Tracker
                 </button>
+              </div>
+            </article>
+
+            <article className="event-card ritual-stats-card">
+              <div>
+                <small>Total Chants</small>
+                <strong>{chantProgress.totalCount.toLocaleString()}</strong>
+              </div>
+              <div>
+                <small>Favorites</small>
+                <strong>{favorites.size}</strong>
+              </div>
+              <div>
+                <small>Done Days</small>
+                <strong>{recentCalendarDays.filter((day) => day.completedCount > 0).length}</strong>
               </div>
             </article>
 
@@ -2472,13 +2589,24 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
       {route !== "landing" && route !== "detail" && (
         <nav className="floating-dock" aria-label="Bottom Navigation">
           <button className={route === "home" ? "active" : ""} onClick={() => setRoute("home")} type="button" title="Home">
-            ⌂
+            <RitualNavIcon name="home" />
+            <span className="dock-label">Home</span>
           </button>
-          <button className={route === "favorites" ? "active" : ""} onClick={() => setRoute("favorites")} type="button" title="Favorites">
-            ♡
+          <button className={route === "library" ? "active" : ""} onClick={() => setRoute("library")} type="button" title="Chants">
+            <RitualNavIcon name="chants" />
+            <span className="dock-label">Chants</span>
+          </button>
+          <button className={route === "sessions" ? "active" : ""} onClick={() => setRoute("sessions")} type="button" title="Counter">
+            <RitualNavIcon name="counter" />
+            <span className="dock-label">Counter</span>
+          </button>
+          <button className={route === "profile" ? "active" : ""} onClick={() => setRoute("profile")} type="button" title="Profile">
+            <RitualNavIcon name="profile" />
+            <span className="dock-label">Profile</span>
           </button>
           <button className={isSideMenuOpen ? "active" : ""} onClick={() => setIsSideMenuOpen((value) => !value)} type="button" title="Menu">
-            ☰
+            <RitualNavIcon name="menu" />
+            <span className="dock-label">Menu</span>
           </button>
         </nav>
       )}

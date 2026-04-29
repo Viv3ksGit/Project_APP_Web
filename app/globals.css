@@ -5625,3 +5625,545 @@ body {
     font-size: 40px;
   }
 }
+
+/* My Shloka Ritual theme pass */
+:root {
+  --ritual-green: #1f5d3a;
+  --ritual-green-dark: #17492d;
+  --ritual-sage: #6f806f;
+  --ritual-soft-green: #eef4ec;
+  --ritual-gold: #c8a96b;
+  --ritual-cream: #f8f5ee;
+  --ritual-surface: #fffdf8;
+  --ritual-ink: #1c2a22;
+  --ritual-muted: #6b7a70;
+  --ritual-border: #ded6c8;
+  --ritual-shadow: 0 14px 34px rgba(28, 42, 34, 0.08);
+}
+
+body {
+  background:
+    radial-gradient(circle at 12% 3%, rgba(31, 93, 58, 0.04), transparent 28%),
+    radial-gradient(circle at 82% 18%, rgba(200, 169, 107, 0.08), transparent 24%),
+    var(--ritual-cream) !important;
+  color: var(--ritual-ink);
+}
+
+.app-shell:not(.landing-mode) {
+  background:
+    linear-gradient(90deg, rgba(31, 93, 58, 0.025), transparent 12%, transparent 88%, rgba(31, 93, 58, 0.025)),
+    var(--ritual-cream) !important;
+}
+
+.app-shell:not(.landing-mode) .app-header {
+  min-height: 76px;
+  padding: 16px 18px;
+  background:
+    radial-gradient(circle at 92% 22%, rgba(200, 169, 107, 0.12), transparent 24%),
+    linear-gradient(135deg, var(--ritual-green), var(--ritual-green-dark)) !important;
+  box-shadow: 0 10px 24px rgba(23, 73, 45, 0.14);
+}
+
+.app-shell:not(.landing-mode) .brand {
+  align-items: center;
+}
+
+.app-shell:not(.landing-mode) .brand-mark {
+  width: 48px;
+  height: 48px;
+  border: 1px solid rgba(255, 253, 248, 0.16);
+  border-radius: 18px;
+  color: #fffdf8;
+  background:
+    radial-gradient(circle at 50% 35%, rgba(255, 253, 248, 0.2), transparent 44%),
+    rgba(200, 169, 107, 0.92);
+  box-shadow: inset 0 -12px 18px rgba(31, 93, 58, 0.12);
+}
+
+.app-shell:not(.landing-mode) .brand-mark svg {
+  width: 31px;
+  height: 31px;
+}
+
+.app-shell:not(.landing-mode) .brand strong {
+  color: #fffdf8;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 25px;
+  font-weight: 700;
+}
+
+.app-shell:not(.landing-mode) .brand div span {
+  color: rgba(255, 253, 248, 0.86);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.app-shell:not(.landing-mode) main {
+  padding: 18px 14px 112px !important;
+}
+
+.panel,
+.home-section,
+.event-card,
+.result-card,
+.favorites-panel,
+.sloka-card,
+.chant-playlist-card,
+.panchangam-card,
+.quick-actions-card,
+.sloka-action-card,
+.profile-card,
+.calendar-card,
+.tracker-card,
+.deity-card,
+.list-card,
+.session-card {
+  border-color: rgba(222, 214, 200, 0.95) !important;
+  border-radius: 20px !important;
+  background:
+    radial-gradient(circle at 100% 100%, rgba(31, 93, 58, 0.04), transparent 28%),
+    var(--ritual-surface) !important;
+  box-shadow: var(--ritual-shadow);
+}
+
+.field-label,
+.section-label,
+.meta-label,
+.card-label {
+  color: var(--ritual-muted) !important;
+}
+
+input,
+select,
+textarea,
+.search-box,
+.start-modal-input {
+  border-color: var(--ritual-border) !important;
+  border-radius: 18px !important;
+  background: rgba(255, 253, 248, 0.9) !important;
+  color: var(--ritual-ink) !important;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: rgba(107, 122, 112, 0.46) !important;
+}
+
+.primary-button,
+.start-button,
+.create-list-button,
+.start-list-button,
+.session-button.active,
+.duration-card.active,
+.start-chip.active,
+.filter-chip.active {
+  border-color: var(--ritual-green) !important;
+  background: linear-gradient(135deg, var(--ritual-green), var(--ritual-green-dark)) !important;
+  color: #fffdf8 !important;
+  box-shadow: 0 12px 24px rgba(31, 93, 58, 0.16);
+}
+
+.secondary-button,
+.ghost-button,
+.chip,
+.filter-chip,
+.start-chip {
+  border-color: var(--ritual-border) !important;
+  color: var(--ritual-ink) !important;
+  background: rgba(255, 253, 248, 0.74) !important;
+}
+
+.tile,
+.tile.image,
+.deity-icon,
+.sloka-thumb {
+  border-color: rgba(31, 93, 58, 0.14) !important;
+  background: var(--ritual-soft-green) !important;
+}
+
+.progress-bar,
+.session-progress-track,
+.chant-progress-track {
+  background: rgba(31, 93, 58, 0.12) !important;
+}
+
+.progress-bar span,
+.session-progress-fill,
+.chant-progress-fill {
+  background: var(--ritual-green) !important;
+}
+
+.app-shell:not(.landing-mode) .floating-dock {
+  bottom: 16px;
+  z-index: 42;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  width: min(392px, calc(100vw - 24px));
+  padding: 7px;
+  gap: 4px;
+  border: 1px solid rgba(222, 214, 200, 0.88);
+  border-radius: 26px;
+  background: rgba(255, 253, 248, 0.92);
+  box-shadow: 0 18px 36px rgba(28, 42, 34, 0.14);
+  backdrop-filter: blur(18px);
+}
+
+.app-shell:not(.landing-mode) .floating-dock button {
+  display: grid;
+  min-height: 54px;
+  place-items: center;
+  gap: 2px;
+  border-radius: 20px;
+  color: rgba(28, 42, 34, 0.68);
+  background: transparent;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.app-shell:not(.landing-mode) .floating-dock button svg {
+  width: 21px;
+  height: 21px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.85;
+}
+
+.app-shell:not(.landing-mode) .floating-dock button.active {
+  color: #fffdf8;
+  background: linear-gradient(135deg, var(--ritual-green), var(--ritual-green-dark));
+  box-shadow: inset 0 1px 0 rgba(255, 253, 248, 0.18), 0 8px 16px rgba(31, 93, 58, 0.16);
+}
+
+.dock-label {
+  display: block;
+  font-size: 10px;
+  line-height: 1;
+}
+
+.app-shell:not(.landing-mode) .menu-sheet {
+  width: min(430px, 100vw);
+  background: transparent;
+}
+
+.app-shell:not(.landing-mode) .menu-sheet-backdrop {
+  background: rgba(28, 42, 34, 0.24);
+  backdrop-filter: blur(3px);
+}
+
+.app-shell:not(.landing-mode) .menu-sheet-panel {
+  display: block;
+  padding: 42px 24px 116px;
+  background:
+    radial-gradient(circle at 18% 8%, rgba(200, 169, 107, 0.12), transparent 30%),
+    radial-gradient(circle at 88% 92%, rgba(31, 93, 58, 0.08), transparent 26%),
+    var(--ritual-cream);
+  color: var(--ritual-ink);
+}
+
+.app-shell:not(.landing-mode) .menu-sheet-panel h3 {
+  margin: 0 0 28px;
+  color: var(--ritual-green);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 44px;
+  font-weight: 700;
+}
+
+.app-shell:not(.landing-mode) .menu-sheet-list {
+  display: grid;
+  gap: 14px;
+}
+
+.app-shell:not(.landing-mode) .menu-sheet-list button {
+  min-height: 76px;
+  padding: 14px 44px 14px 18px;
+  border-color: rgba(222, 214, 200, 0.96);
+  border-radius: 20px;
+  background: rgba(255, 253, 248, 0.76);
+  box-shadow: 0 10px 24px rgba(28, 42, 34, 0.06);
+}
+
+.app-shell:not(.landing-mode) .menu-sheet-list button strong {
+  color: var(--ritual-ink);
+  font-size: 22px;
+}
+
+.app-shell:not(.landing-mode) .menu-sheet-list button small {
+  color: var(--ritual-muted);
+  font-size: 14px;
+}
+
+.app-shell:not(.landing-mode) .menu-sheet-list button::after {
+  color: rgba(31, 93, 58, 0.34);
+}
+
+.chant-celebration {
+  background:
+    radial-gradient(circle at 20% 18%, rgba(200, 169, 107, 0.2), transparent 26%),
+    rgba(248, 245, 238, 0.9) !important;
+  backdrop-filter: blur(8px);
+}
+
+.chant-celebration article {
+  border-radius: 24px;
+  background: var(--ritual-surface) !important;
+  box-shadow: 0 24px 44px rgba(28, 42, 34, 0.18);
+}
+
+@media (max-width: 430px) {
+  .dock-label {
+    display: none;
+  }
+
+  .app-shell:not(.landing-mode) .floating-dock button {
+    min-height: 50px;
+  }
+}
+
+/* Ritual home screen inspired by the new identity reference */
+.ritual-home-hero {
+  display: grid;
+  gap: 14px;
+  justify-items: center;
+  padding: 22px 18px 10px;
+  text-align: center;
+}
+
+.ritual-home-logo {
+  display: grid;
+  width: 112px;
+  height: 96px;
+  place-items: center;
+  color: var(--ritual-green);
+  filter: drop-shadow(0 10px 18px rgba(31, 93, 58, 0.1));
+}
+
+.ritual-home-logo svg {
+  width: 112px;
+  height: 112px;
+}
+
+.ritual-home-hero h1 {
+  margin: 0;
+  color: var(--ritual-green-dark);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(34px, 9vw, 44px);
+  font-weight: 500;
+  line-height: 1;
+}
+
+.ritual-home-hero p {
+  margin: 6px 0 0;
+  color: var(--ritual-muted);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.ritual-home-hero .ritual-eyebrow {
+  margin: 0 0 6px;
+  color: var(--ritual-ink);
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.ritual-dashboard-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 112px minmax(0, 1fr);
+  align-items: center;
+  padding: 18px 16px !important;
+  min-height: 142px;
+}
+
+.ritual-stat-block {
+  display: grid;
+  gap: 2px;
+  color: var(--ritual-ink);
+}
+
+.ritual-stat-block.right {
+  justify-items: end;
+  text-align: right;
+}
+
+.ritual-stat-label {
+  color: var(--ritual-muted);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.ritual-stat-block strong {
+  color: var(--ritual-green-dark);
+  font-size: 32px;
+  line-height: 1;
+}
+
+.ritual-stat-block small {
+  color: var(--ritual-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.ritual-mini-pill {
+  min-height: 28px;
+  margin-top: 8px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 999px;
+  color: var(--ritual-ink);
+  background: rgba(200, 169, 107, 0.2);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.ritual-goal-ring {
+  --progress: 0%;
+  display: grid;
+  width: 104px;
+  height: 104px;
+  place-items: center;
+  border-radius: 999px;
+  color: var(--ritual-green);
+  background:
+    radial-gradient(circle at center, var(--ritual-surface) 58%, transparent 59%),
+    conic-gradient(var(--ritual-green) var(--progress), rgba(200, 169, 107, 0.22) 0);
+}
+
+.ritual-goal-ring svg {
+  width: 56px;
+  height: 56px;
+}
+
+.ritual-quote-card {
+  display: grid;
+  gap: 14px;
+  min-height: 128px;
+  padding: 26px 26px 22px;
+  place-items: center;
+  border: 1px solid rgba(222, 214, 200, 0.72);
+  border-radius: 20px;
+  background:
+    linear-gradient(135deg, rgba(23, 73, 45, 0.92), rgba(111, 128, 111, 0.78)),
+    var(--ritual-green);
+  color: #fffdf8;
+  box-shadow: var(--ritual-shadow);
+  text-align: center;
+}
+
+.ritual-quote-card p {
+  max-width: 270px;
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.45;
+  font-weight: 600;
+}
+
+.ritual-quote-card span {
+  width: 86px;
+  height: 10px;
+  background:
+    linear-gradient(90deg, transparent, rgba(255, 253, 248, 0.74), transparent),
+    radial-gradient(circle at 50% 50%, #fffdf8 0 2px, transparent 3px);
+  opacity: 0.8;
+}
+
+.ritual-legacy-greeting {
+  display: none !important;
+}
+
+.ritual-continue-card {
+  padding: 16px !important;
+}
+
+.ritual-listening-row {
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ritual-ink);
+  text-align: left;
+}
+
+.ritual-listening-row strong,
+.ritual-listening-row small {
+  display: block;
+}
+
+.ritual-listening-row strong {
+  font-size: 15px;
+}
+
+.ritual-listening-row small {
+  margin-top: 3px;
+  color: var(--ritual-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.ritual-listening-row em {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border-radius: 999px;
+  color: #fffdf8;
+  background: var(--ritual-green);
+  font-style: normal;
+  font-weight: 900;
+}
+
+.ritual-stats-card {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  padding: 14px !important;
+}
+
+.ritual-stats-card div {
+  display: grid;
+  gap: 4px;
+  min-height: 58px;
+  place-items: center;
+  border-right: 1px solid rgba(222, 214, 200, 0.78);
+  text-align: center;
+}
+
+.ritual-stats-card div:last-child {
+  border-right: 0;
+}
+
+.ritual-stats-card small {
+  color: var(--ritual-muted);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.ritual-stats-card strong {
+  color: var(--ritual-green-dark);
+  font-size: 21px;
+}
+
+.ritual-search-card {
+  margin-top: 2px;
+}
+
+@media (max-width: 380px) {
+  .ritual-dashboard-card {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    gap: 12px;
+    text-align: center;
+  }
+
+  .ritual-stat-block.right {
+    justify-items: center;
+    text-align: center;
+  }
+}
