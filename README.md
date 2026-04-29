@@ -12,7 +12,9 @@ npm run dev
 
 Open [http://127.0.0.1:3000](http://127.0.0.1:3000) with your browser.
 
-macOS quick start:
+## For Teammates On Mac
+
+Run these commands from the project root:
 
 ```bash
 git pull
@@ -22,6 +24,10 @@ npm ci
 npm run doctor
 npm run dev
 ```
+
+Then open [http://127.0.0.1:3000](http://127.0.0.1:3000).
+
+If `nvm` is not installed, install Node.js 20+ first, then run `npm ci`, `npm run doctor`, and `npm run dev`.
 
 Do not open `out/index.html` or `mobile-web/index.html` directly for the web app. Those files are fallback shells and will not include the real Next.js CSS, fonts, API routes, or generated asset bundles. A teammate should run the app with `npm ci` and `npm run dev`, or open the deployed URL.
 
