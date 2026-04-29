@@ -11,6 +11,10 @@ npm run dev
 
 Open [http://127.0.0.1:3000](http://127.0.0.1:3000) with your browser.
 
+Do not open `out/index.html` or `mobile-web/index.html` directly for the web app. Those files are fallback shells and will not include the real Next.js CSS, fonts, API routes, or generated asset bundles. A teammate should run the app with `npm ci` and `npm run dev`, or open the deployed URL.
+
+Images, audio, video, decorative SVGs, and app fonts are served by the Next.js app from the repository. Public assets live in `public/`, and bundled fonts are configured in `app/layout.tsx`.
+
 ### One-command local bootstrap
 
 If you want a teammate-friendly setup after cloning the repo, use the bootstrap script for your platform.

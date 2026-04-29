@@ -8,7 +8,7 @@
       body {
         margin: 0;
         font-family: "Segoe UI", Arial, sans-serif;
-        background: #fff8ed;
+        background: #f5f1e8;
         color: #261f1a;
       }
       .wrap {
@@ -20,7 +20,11 @@
         border: 1px solid #eadfce;
         border-radius: 8px;
         padding: 20px;
-        background: #fff;
+        background: #fffdf8;
+      }
+      a {
+        color: #155c34;
+        font-weight: 700;
       }
       h1 {
         margin: 0 0 10px;
@@ -40,9 +44,10 @@
   <body>
     <main class="wrap">
       <section class="card">
-        <h1>Sloka Sabha Android Shell</h1>
-        <p>This Android build is ready, but no remote app URL is configured yet.</p>
-        <p>Set <code>CAPACITOR_APP_URL</code> to your deployed web app URL, then run <code>npm run android:sync</code>.</p>
+        <h1>Sloka Sabha Fallback Shell</h1>
+        <p>This is not the full web app. It is a small fallback page used only when the Android wrapper has no deployed app URL configured.</p>
+        <p>For the real app with CSS, fonts, images, audio, and video, run <code>npm ci</code> and <code>npm run dev</code>, then open <a href="http://127.0.0.1:3000">http://127.0.0.1:3000</a>.</p>
+        <p>For Android, set <code>CAPACITOR_APP_URL</code> to the deployed web app URL before running <code>npm run android:sync</code>.</p>
       </section>
     </main>
   </body>

@@ -28,7 +28,7 @@ body {
 body {
   color: var(--ink);
   background: var(--paper);
-  font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+  font-family: var(--font-lora), "Trebuchet MS", "Segoe UI", sans-serif;
 }
 
 button,
@@ -4260,10 +4260,10 @@ body {
 
 /* Absolute final size lock (small sloka text) */
 .app-shell {
-  --sloka-title-font: "Palatino Linotype", "Book Antiqua", Georgia, serif;
-  --sloka-main-font: "Noto Serif Tamil", "Palatino Linotype", "Book Antiqua", Georgia, serif;
-  --sloka-sub-font: "Inter", "Segoe UI", sans-serif;
-  --sloka-meaning-font: "Inter", "Segoe UI", sans-serif;
+  --sloka-title-font: var(--font-lora), "Palatino Linotype", "Book Antiqua", Georgia, serif;
+  --sloka-main-font: var(--font-tamil), "Noto Serif Tamil", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+  --sloka-sub-font: var(--font-lora), "Segoe UI", sans-serif;
+  --sloka-meaning-font: var(--font-lora), "Segoe UI", sans-serif;
   --sloka-title-size: clamp(16px, 3.8vw, 21px);
   --sloka-main-size: clamp(12px, 3vw, 18px);
   --sloka-sub-size: clamp(11px, 2.6vw, 15px);
@@ -4410,10 +4410,10 @@ body {
    CLEAN PLAYER (single source)
    =============================== */
 .ref-player-screen {
-  --ref-title-font: "Palatino Linotype", "Book Antiqua", Georgia, serif;
-  --ref-main-font: "Noto Serif Tamil", "Palatino Linotype", "Book Antiqua", Georgia, serif;
-  --ref-sub-font: "Inter", "Segoe UI", sans-serif;
-  --ref-meaning-font: "Inter", "Segoe UI", sans-serif;
+  --ref-title-font: var(--font-lora), "Palatino Linotype", "Book Antiqua", Georgia, serif;
+  --ref-main-font: var(--font-tamil), "Noto Serif Tamil", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+  --ref-sub-font: var(--font-lora), "Segoe UI", sans-serif;
+  --ref-meaning-font: var(--font-lora), "Segoe UI", sans-serif;
   --ref-title-size: clamp(16px, 3.8vw, 21px);
   --ref-main-size: clamp(12px, 3vw, 18px);
   --ref-sub-size: clamp(11px, 2.6vw, 15px);

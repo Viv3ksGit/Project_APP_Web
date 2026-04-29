@@ -1501,7 +1501,7 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
                 <LotusBrandIcon />
               </div>
               <div className="ritual-stat-block right">
-                <span className="ritual-stat-label">Today's Goal</span>
+                <span className="ritual-stat-label">Today&apos;s Goal</span>
                 <strong>{chantProgress.dailyTarget}</strong>
                 <small>chants</small>
                 <button className="ritual-mini-pill" onClick={() => setRoute("sessions")} type="button">
