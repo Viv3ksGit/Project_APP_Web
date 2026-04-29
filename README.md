@@ -5,11 +5,23 @@ This is the Sloka Sabha web application built with [Next.js](https://nextjs.org)
 Install dependencies and run the development server:
 
 ```bash
+nvm use
 npm ci
 npm run dev
 ```
 
 Open [http://127.0.0.1:3000](http://127.0.0.1:3000) with your browser.
+
+macOS quick start:
+
+```bash
+git pull
+nvm install
+nvm use
+npm ci
+npm run doctor
+npm run dev
+```
 
 Do not open `out/index.html` or `mobile-web/index.html` directly for the web app. Those files are fallback shells and will not include the real Next.js CSS, fonts, API routes, or generated asset bundles. A teammate should run the app with `npm ci` and `npm run dev`, or open the deployed URL.
 
