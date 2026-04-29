@@ -5,7 +5,7 @@ import Image from "next/image";
 import Sanscript from "@indic-transliteration/sanscript";
 import type { Sloka, SlokaSummary } from "@/lib/domain/types";
 
-type Route = "landing" | "home" | "calendar" | "gods" | "sessions" | "library" | "detail" | "favorites" | "profile" | "phase2";
+type Route = "landing" | "home" | "calendar" | "gods" | "sessions" | "chantlists" | "library" | "detail" | "favorites" | "profile" | "phase2";
 type AppClientProps = {
   initialSlokaList: SlokaSummary[];
   initialSloka: Sloka;
@@ -30,6 +30,8 @@ type TamilCalendarToday = {
 const STORAGE_KEYS = {
   favorites: "sloka_sabha_favorites_v2",
   chantProgress: "sloka_sabha_chant_progress_v1",
+  slokaPractice: "sloka_sabha_sloka_practice_v1",
+  chantLists: "sloka_sabha_chant_lists_v1",
   reminders: "sloka_sabha_reminders_v1",
   readerPrefs: "sloka_sabha_reader_prefs_v1",
 };
@@ -84,6 +86,28 @@ type ReaderPrefs = {
   showMeaning: boolean;
 };
 
+type SlokaPracticeEntry = {
+  scheduleTime: string;
+  startedAt: string;
+  endedAt: string;
+  timeSpentSeconds: number;
+  activeLineIndex: number;
+  lineHighlights: Record<number, string>;
+  completedDates: string[];
+};
+
+type SlokaPracticeState = Record<string, SlokaPracticeEntry>;
+
+type ChantList = {
+  id: string;
+  name: string;
+  slokaIds: string[];
+  scheduleTime: string;
+  enabled: boolean;
+  lastNotifiedDate: string;
+  createdAt: string;
+};
+
 const DEFAULT_CHANT_PROGRESS: ChantProgress = {
   dailyTarget: DAILY_TARGET_OPTIONS[0],
   dailyCount: 0,
@@ -104,6 +128,41 @@ const DEFAULT_READER_PREFS: ReaderPrefs = {
   language: "both",
   showMeaning: true,
 };
+
+const DEFAULT_PRACTICE_ENTRY: SlokaPracticeEntry = {
+  scheduleTime: "06:30",
+  startedAt: "",
+  endedAt: "",
+  timeSpentSeconds: 0,
+  activeLineIndex: 0,
+  lineHighlights: {},
+  completedDates: [],
+};
+
+const LINE_HIGHLIGHT_OPTIONS = [
+  { label: "Gold", value: "gold" },
+  { label: "Green", value: "green" },
+  { label: "Rose", value: "rose" },
+] as const;
+const CELEBRATION_CONFETTI = [
+  { left: "6%", delay: "0s", duration: "1300ms", color: "#c8a96b" },
+  { left: "12%", delay: "120ms", duration: "1500ms", color: "#1f5d3a" },
+  { left: "18%", delay: "320ms", duration: "1200ms", color: "#b87333" },
+  { left: "25%", delay: "80ms", duration: "1400ms", color: "#d4af37" },
+  { left: "33%", delay: "220ms", duration: "1350ms", color: "#17492d" },
+  { left: "41%", delay: "420ms", duration: "1550ms", color: "#c8a96b" },
+  { left: "50%", delay: "0ms", duration: "1450ms", color: "#2e7d32" },
+  { left: "58%", delay: "210ms", duration: "1250ms", color: "#b87333" },
+  { left: "66%", delay: "390ms", duration: "1600ms", color: "#d4af37" },
+  { left: "74%", delay: "150ms", duration: "1350ms", color: "#17492d" },
+  { left: "81%", delay: "340ms", duration: "1500ms", color: "#c8a96b" },
+  { left: "88%", delay: "260ms", duration: "1400ms", color: "#2e7d32" },
+  { left: "94%", delay: "420ms", duration: "1550ms", color: "#b87333" },
+] as const;
+
+function createId(prefix: string): string {
+  return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+}
 
 function safeParse<T>(value: string | null, fallback: T): T {
   if (!value) return fallback;
@@ -150,6 +209,46 @@ function normalizeProgressForToday(value: ChantProgress, todayDateKey: string): 
     ...value,
     dailyCount: 0,
   };
+}
+
+function normalizePracticeEntry(value?: Partial<SlokaPracticeEntry>): SlokaPracticeEntry {
+  return {
+    ...DEFAULT_PRACTICE_ENTRY,
+    ...value,
+    completedDates: Array.isArray(value?.completedDates) ? value.completedDates.filter(Boolean) : [],
+    lineHighlights:
+      value?.lineHighlights && typeof value.lineHighlights === "object" && !Array.isArray(value.lineHighlights)
+        ? value.lineHighlights
+        : {},
+    activeLineIndex: Number.isFinite(value?.activeLineIndex) ? Math.max(0, Number(value?.activeLineIndex)) : 0,
+    timeSpentSeconds: Number.isFinite(value?.timeSpentSeconds) ? Math.max(0, Number(value?.timeSpentSeconds)) : 0,
+  };
+}
+
+function normalizePracticeState(value: SlokaPracticeState): SlokaPracticeState {
+  return Object.fromEntries(Object.entries(value).map(([slokaId, entry]) => [slokaId, normalizePracticeEntry(entry)]));
+}
+
+function normalizeChantLists(value: ChantList[]): ChantList[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((list) => list && typeof list.id === "string" && typeof list.name === "string")
+    .map((list) => ({
+      id: list.id,
+      name: list.name.trim() || "My Chant List",
+      slokaIds: Array.isArray(list.slokaIds) ? Array.from(new Set(list.slokaIds.filter(Boolean))) : [],
+      scheduleTime: list.scheduleTime || "06:30",
+      enabled: Boolean(list.enabled),
+      lastNotifiedDate: list.lastNotifiedDate || "",
+      createdAt: list.createdAt || new Date().toISOString(),
+    }));
+}
+
+function formatElapsedTime(totalSeconds: number): string {
+  const safeSeconds = Math.max(0, Math.floor(totalSeconds));
+  const minutes = Math.floor(safeSeconds / 60);
+  const seconds = `${safeSeconds % 60}`.padStart(2, "0");
+  return `${minutes}:${seconds}`;
 }
 
 function hasTamilScript(text: string): boolean {
@@ -211,27 +310,65 @@ function ShlokaTextBlock({
   lines,
   language,
   showMeaning,
+  activeLineIndex,
+  lineHighlights,
+  onSelectLine,
+  onSetLineHighlight,
+  onRemoveLineHighlight,
 }: {
   title: string;
   lines: SlokaLineItem[];
   language: ReaderLanguage;
   showMeaning: boolean;
+  activeLineIndex: number;
+  lineHighlights: Record<number, string>;
+  onSelectLine: (lineIndex: number) => void;
+  onSetLineHighlight: (color: string) => void;
+  onRemoveLineHighlight: () => void;
 }) {
   return (
     <article className="ref-player-text-card">
       <h2>{title}</h2>
       <div className="ref-player-full-sloka">
-        {lines.map((line, index) => (
-          <div className="ref-player-line-pair" key={`player-line-${index + 1}`}>
-            {language !== "english" && (
-              <p className="ref-player-sanskrit">{toTamilScript((line.tamil || line.english || "").trim())}</p>
-            )}
-            {language !== "tamil" && (
-              <p className="ref-player-transliteration">{(line.english || line.pronunciation || line.tamil || "").trim()}</p>
-            )}
-            {showMeaning && line.meaning?.trim() && <p className="ref-player-meaning">{line.meaning.trim()}</p>}
-          </div>
-        ))}
+        {lines.map((line, index) => {
+          const highlightColor = lineHighlights[index];
+          return (
+            <div
+              className={`ref-player-line-pair ${activeLineIndex === index ? "active" : ""} ${
+                highlightColor ? `highlight-${highlightColor}` : ""
+              }`}
+              key={`player-line-${index + 1}`}
+            >
+              <button className="ref-player-line-select" onClick={() => onSelectLine(index)} type="button">
+                {language !== "english" && (
+                  <p className="ref-player-sanskrit">{toTamilScript((line.tamil || line.english || "").trim())}</p>
+                )}
+                {language !== "tamil" && (
+                  <p className="ref-player-transliteration">{(line.english || line.pronunciation || line.tamil || "").trim()}</p>
+                )}
+                {showMeaning && line.meaning?.trim() && <p className="ref-player-meaning">{line.meaning.trim()}</p>}
+              </button>
+              {activeLineIndex === index && (
+                <div className="line-inline-highlight-panel" aria-label={`Line ${index + 1} highlight options`}>
+                  {LINE_HIGHLIGHT_OPTIONS.map((option) => (
+                    <button
+                      className={`line-highlight-dot ${option.value} ${highlightColor === option.value ? "active" : ""}`}
+                      key={`inline-line-highlight-${index}-${option.value}`}
+                      onClick={() => onSetLineHighlight(option.value)}
+                      title={`${option.label} highlight`}
+                      type="button"
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                  <button className="line-highlight-dot remove" onClick={onRemoveLineHighlight} type="button">
+                    Remove
+                  </button>
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </article>
   );
@@ -289,6 +426,7 @@ function SlokaTile({ sloka }: { sloka: SlokaSummary }) {
 
 export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
   const [route, setRoute] = useState<Route>("landing");
+  const [isSideMenuOpen, setIsSideMenuOpen] = useState<boolean>(false);
   const [detailBackRoute, setDetailBackRoute] = useState<Route>("home");
   const [slokaList] = useState<SlokaSummary[]>(initialSlokaList);
   const [selectedSloka, setSelectedSloka] = useState<Sloka>(initialSloka);
@@ -307,12 +445,22 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
   const [isHydrated, setIsHydrated] = useState<boolean>(false);
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [chantProgress, setChantProgress] = useState<ChantProgress>(DEFAULT_CHANT_PROGRESS);
+  const [slokaPractice, setSlokaPractice] = useState<SlokaPracticeState>({});
+  const [chantLists, setChantLists] = useState<ChantList[]>([]);
+  const [chantListName, setChantListName] = useState<string>("Morning Chant");
+  const [chantListSelectedSlokaId, setChantListSelectedSlokaId] = useState<string>(initialSloka.id);
+  const [detailChantListId, setDetailChantListId] = useState<string>("");
+  const [activeChantListId, setActiveChantListId] = useState<string>("");
+  const [pendingListSlokaId, setPendingListSlokaId] = useState<string>("");
+  const [chantCelebrationVisible, setChantCelebrationVisible] = useState<boolean>(false);
+  const [chantCelebrationMessage, setChantCelebrationMessage] = useState<string>("");
   const [reminders, setReminders] = useState<ReminderSettings>(DEFAULT_REMINDERS);
   const [todayDay, setTodayDay] = useState<string>("");
   const [todayCalendar, setTodayCalendar] = useState<TamilCalendarToday | null>(null);
   const [readerFontScale, setReaderFontScale] = useState<number>(DEFAULT_READER_PREFS.fontScale);
   const [readerLanguage, setReaderLanguage] = useState<ReaderLanguage>(DEFAULT_READER_PREFS.language);
   const [showMeaning, setShowMeaning] = useState<boolean>(DEFAULT_READER_PREFS.showMeaning);
+  const [timeSpentTick, setTimeSpentTick] = useState<number>(0);
   const homeSearchInputRef = useRef<HTMLInputElement | null>(null);
   const startSearchInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -344,6 +492,71 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
   const favoriteSlokas = useMemo(() => {
     return slokaList.filter((sloka) => favorites.has(sloka.id));
   }, [favorites, slokaList]);
+
+  const selectedPractice = useMemo(() => {
+    const entry = normalizePracticeEntry(slokaPractice[selectedSloka.id]);
+    return {
+      ...entry,
+      activeLineIndex: Math.min(Math.max(0, entry.activeLineIndex), Math.max(0, selectedSloka.lines.length - 1)),
+    };
+  }, [selectedSloka.id, selectedSloka.lines.length, slokaPractice]);
+
+  const todayDateKey = useMemo(() => getDateKey(new Date()), []);
+
+  const selectedSlokaDoneToday = useMemo(() => {
+    return selectedPractice.completedDates.includes(todayDateKey);
+  }, [selectedPractice.completedDates, todayDateKey]);
+
+  const selectedLinePercent = useMemo(() => {
+    if (selectedSloka.lines.length === 0) return 0;
+    return Math.round(((selectedPractice.activeLineIndex + 1) / selectedSloka.lines.length) * 100);
+  }, [selectedPractice.activeLineIndex, selectedSloka.lines.length]);
+
+  const selectedSessionSeconds = useMemo(() => {
+    void timeSpentTick;
+    if (!selectedPractice.startedAt || selectedPractice.endedAt) return selectedPractice.timeSpentSeconds;
+    const startedAt = new Date(selectedPractice.startedAt).getTime();
+    if (!Number.isFinite(startedAt)) return selectedPractice.timeSpentSeconds;
+    return selectedPractice.timeSpentSeconds + Math.max(0, Math.floor((Date.now() - startedAt) / 1000));
+  }, [selectedPractice.endedAt, selectedPractice.startedAt, selectedPractice.timeSpentSeconds, timeSpentTick]);
+
+  const recentCalendarDays = useMemo(() => {
+    return Array.from({ length: 14 }, (_, index) => {
+      const date = new Date();
+      date.setDate(date.getDate() - (13 - index));
+      const key = getDateKey(date);
+      const completedCount = Object.values(slokaPractice).filter((entry) => entry.completedDates?.includes(key)).length;
+      return {
+        key,
+        label: date.toLocaleDateString(undefined, { weekday: "short" }),
+        day: date.getDate(),
+        completedCount,
+        isToday: key === todayDateKey,
+      };
+    });
+  }, [slokaPractice, todayDateKey]);
+
+  const activeChantList = useMemo(() => {
+    return chantLists.find((list) => list.id === activeChantListId) ?? null;
+  }, [activeChantListId, chantLists]);
+
+  const detailChantListTargetId = useMemo(() => {
+    if (chantLists.some((list) => list.id === detailChantListId)) return detailChantListId;
+    return activeChantListId || chantLists[0]?.id || "";
+  }, [activeChantListId, chantLists, detailChantListId]);
+
+  const chantListStats = useMemo(() => {
+    return chantLists.map((list) => {
+      const completedToday = list.slokaIds.filter((slokaId) =>
+        normalizePracticeEntry(slokaPractice[slokaId]).completedDates.includes(todayDateKey),
+      ).length;
+      return {
+        ...list,
+        completedToday,
+        total: list.slokaIds.length,
+      };
+    });
+  }, [chantLists, slokaPractice, todayDateKey]);
 
   const homeResults = useMemo(() => {
     const query = homeSearch.trim().toLowerCase();
@@ -519,6 +732,60 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
     });
   }, []);
 
+  const createChantList = useCallback(() => {
+    const name = chantListName.trim() || "My Chant List";
+    const now = new Date().toISOString();
+    const newList: ChantList = {
+      id: createId("chantlist"),
+      name,
+      slokaIds: chantListSelectedSlokaId ? [chantListSelectedSlokaId] : [],
+      scheduleTime: "06:30",
+      enabled: false,
+      lastNotifiedDate: "",
+      createdAt: now,
+    };
+    setChantLists((previous) => [newList, ...previous]);
+    setActiveChantListId(newList.id);
+    setChantListName("Morning Chant");
+    setLiveMessage(`Created chant list ${name}.`);
+  }, [chantListName, chantListSelectedSlokaId]);
+
+  const addSlokaToChantList = useCallback((listId: string, slokaId: string) => {
+    setChantLists((previous) =>
+      previous.map((list) =>
+        list.id === listId
+          ? {
+              ...list,
+              slokaIds: list.slokaIds.includes(slokaId) ? list.slokaIds : [...list.slokaIds, slokaId],
+            }
+          : list,
+      ),
+    );
+    setLiveMessage("Added sloka to chant list.");
+  }, []);
+
+  const removeSlokaFromChantList = useCallback((listId: string, slokaId: string) => {
+    setChantLists((previous) =>
+      previous.map((list) =>
+        list.id === listId
+          ? {
+              ...list,
+              slokaIds: list.slokaIds.filter((value) => value !== slokaId),
+            }
+          : list,
+      ),
+    );
+  }, []);
+
+  const updateChantList = useCallback((listId: string, updates: Partial<ChantList>) => {
+    setChantLists((previous) => previous.map((list) => (list.id === listId ? { ...list, ...updates } : list)));
+  }, []);
+
+  const deleteChantList = useCallback((listId: string) => {
+    setChantLists((previous) => previous.filter((list) => list.id !== listId));
+    setActiveChantListId((current) => (current === listId ? "" : current));
+  }, []);
+
   const logChantCount = useCallback((slokaId: string, amount: number) => {
     const value = Math.max(1, amount);
     const todayDateKey = getDateKey(new Date());
@@ -546,6 +813,121 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
     });
     setLiveMessage(`Updated chant count by ${value}.`);
   }, []);
+
+  const updateSelectedPractice = useCallback(
+    (updater: (entry: SlokaPracticeEntry) => SlokaPracticeEntry) => {
+      setSlokaPractice((previous) => ({
+        ...previous,
+        [selectedSloka.id]: updater(normalizePracticeEntry(previous[selectedSloka.id])),
+      }));
+    },
+    [selectedSloka.id],
+  );
+
+  const setActivePracticeLine = useCallback(
+    (lineIndex: number) => {
+      updateSelectedPractice((entry) => ({
+        ...entry,
+        activeLineIndex: Math.min(Math.max(0, lineIndex), Math.max(0, selectedSloka.lines.length - 1)),
+      }));
+    },
+    [selectedSloka.lines.length, updateSelectedPractice],
+  );
+
+  const startSlokaPractice = useCallback(() => {
+    const startedAt = new Date().toISOString();
+    updateSelectedPractice((entry) => ({
+      ...entry,
+      startedAt,
+      endedAt: "",
+    }));
+    setLiveMessage(`Started ${selectedSloka.title}.`);
+  }, [selectedSloka.title, updateSelectedPractice]);
+
+  const finishSlokaPractice = useCallback(() => {
+    const endedAt = new Date();
+    updateSelectedPractice((entry) => {
+      const startedAt = entry.startedAt ? new Date(entry.startedAt).getTime() : endedAt.getTime();
+      const elapsedSeconds = Number.isFinite(startedAt) ? Math.max(0, Math.floor((endedAt.getTime() - startedAt) / 1000)) : 0;
+      const completedDates = entry.completedDates.includes(todayDateKey)
+        ? entry.completedDates
+        : [...entry.completedDates, todayDateKey].slice(-90);
+      return {
+        ...entry,
+        endedAt: endedAt.toISOString(),
+        timeSpentSeconds: entry.timeSpentSeconds + elapsedSeconds,
+        activeLineIndex: Math.max(0, selectedSloka.lines.length - 1),
+        completedDates,
+      };
+    });
+    logChantCount(selectedSloka.id, 1);
+    if (activeChantList) {
+      const currentIndex = activeChantList.slokaIds.indexOf(selectedSloka.id);
+      const nextSlokaId = currentIndex >= 0 ? activeChantList.slokaIds[currentIndex + 1] : "";
+      if (nextSlokaId) {
+        setPendingListSlokaId(nextSlokaId);
+        setLiveMessage(`Finished ${selectedSloka.title}. Opening next sloka.`);
+        return;
+      }
+      const isLastInList = currentIndex >= 0 && currentIndex === Math.max(0, activeChantList.slokaIds.length - 1);
+      if (isLastInList) {
+        setActiveChantListId("");
+        setChantCelebrationMessage(`Great job! You finished "${activeChantList.name}".`);
+        setChantCelebrationVisible(true);
+        window.setTimeout(() => {
+          setChantCelebrationVisible(false);
+          setRoute("home");
+        }, 2300);
+        setLiveMessage(`Finished ${selectedSloka.title}. Chant list complete.`);
+        return;
+      }
+    }
+    setLiveMessage(`Marked ${selectedSloka.title} complete.`);
+  }, [activeChantList, logChantCount, selectedSloka.id, selectedSloka.lines.length, selectedSloka.title, todayDateKey, updateSelectedPractice]);
+
+  const resetSlokaPractice = useCallback(() => {
+    updateSelectedPractice((entry) => ({
+      ...entry,
+      startedAt: "",
+      endedAt: "",
+      activeLineIndex: 0,
+    }));
+    setLiveMessage(`Reset ${selectedSloka.title} reading progress.`);
+  }, [selectedSloka.title, updateSelectedPractice]);
+
+  const setSelectedScheduleTime = useCallback(
+    (scheduleTime: string) => {
+      updateSelectedPractice((entry) => ({
+        ...entry,
+        scheduleTime,
+      }));
+    },
+    [updateSelectedPractice],
+  );
+
+  const setSelectedLineHighlight = useCallback(
+    (color: string) => {
+      updateSelectedPractice((entry) => ({
+        ...entry,
+        lineHighlights: {
+          ...entry.lineHighlights,
+          [entry.activeLineIndex]: color,
+        },
+      }));
+    },
+    [updateSelectedPractice],
+  );
+
+  const removeSelectedLineHighlight = useCallback(() => {
+    updateSelectedPractice((entry) => {
+      const nextHighlights = { ...entry.lineHighlights };
+      delete nextHighlights[entry.activeLineIndex];
+      return {
+        ...entry,
+        lineHighlights: nextHighlights,
+      };
+    });
+  }, [updateSelectedPractice]);
 
   const triggerTestNotification = useCallback(async () => {
     if (typeof window === "undefined" || typeof Notification === "undefined") {
@@ -587,6 +969,20 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
     [fadeOutAmbientDrone, setDetailBackRoute, setSelectedSloka, setRoute],
   );
 
+  const startChantList = useCallback(
+    async (listId: string) => {
+      const list = chantLists.find((item) => item.id === listId);
+      const firstSlokaId = list?.slokaIds[0];
+      if (!list || !firstSlokaId) {
+        setLiveMessage("Add at least one sloka before starting this chant list.");
+        return;
+      }
+      setActiveChantListId(list.id);
+      await loadSlokaDetail(firstSlokaId, "sessions");
+    },
+    [chantLists, loadSlokaDetail],
+  );
+
   const continueFromStartPrompt = useCallback(async () => {
     const query = startPromptQuery.trim();
     setHomeDurationMax(startPromptDuration);
@@ -625,6 +1021,11 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
       window.localStorage.getItem(STORAGE_KEYS.chantProgress),
       DEFAULT_CHANT_PROGRESS,
     );
+    const persistedPractice = safeParse<SlokaPracticeState>(
+      window.localStorage.getItem(STORAGE_KEYS.slokaPractice),
+      {},
+    );
+    const persistedChantLists = safeParse<ChantList[]>(window.localStorage.getItem(STORAGE_KEYS.chantLists), []);
     const persistedReminders = safeParse<ReminderSettings>(
       window.localStorage.getItem(STORAGE_KEYS.reminders),
       DEFAULT_REMINDERS,
@@ -636,6 +1037,8 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
 
     setFavorites(new Set(persistedFavorites));
     setChantProgress(normalizeProgressForToday(persistedProgress, todayDateKey));
+    setSlokaPractice(normalizePracticeState(persistedPractice));
+    setChantLists(normalizeChantLists(persistedChantLists));
     setReminders(normalizeReminderSettings(persistedReminders));
     setReaderFontScale(
       Math.min(0.9, Math.max(0.5, Number.isFinite(persistedReaderPrefs.fontScale) ? persistedReaderPrefs.fontScale : 0.68)),
@@ -716,6 +1119,16 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
 
   useEffect(() => {
     if (!isHydrated || typeof window === "undefined") return;
+    window.localStorage.setItem(STORAGE_KEYS.slokaPractice, JSON.stringify(slokaPractice));
+  }, [isHydrated, slokaPractice]);
+
+  useEffect(() => {
+    if (!isHydrated || typeof window === "undefined") return;
+    window.localStorage.setItem(STORAGE_KEYS.chantLists, JSON.stringify(chantLists));
+  }, [chantLists, isHydrated]);
+
+  useEffect(() => {
+    if (!isHydrated || typeof window === "undefined") return;
     window.localStorage.setItem(STORAGE_KEYS.reminders, JSON.stringify(reminders));
   }, [isHydrated, reminders]);
 
@@ -759,12 +1172,63 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
   }, [isHydrated, reminders, selectedSloka.title]);
 
   useEffect(() => {
+    if (!pendingListSlokaId) return;
+    const nextSlokaId = pendingListSlokaId;
+    setPendingListSlokaId("");
+    void loadSlokaDetail(nextSlokaId, "sessions");
+  }, [loadSlokaDetail, pendingListSlokaId]);
+
+  useEffect(() => {
+    if (!isHydrated || chantLists.length === 0) return;
+    if (typeof window === "undefined" || typeof Notification === "undefined") return;
+
+    const timer = window.setInterval(() => {
+      const now = new Date();
+      const nowTime = `${`${now.getHours()}`.padStart(2, "0")}:${`${now.getMinutes()}`.padStart(2, "0")}`;
+      const todayDateKey = getDateKey(now);
+      const dueList = chantLists.find(
+        (list) => list.enabled && list.scheduleTime === nowTime && list.lastNotifiedDate !== todayDateKey && list.slokaIds.length > 0,
+      );
+      if (!dueList) return;
+
+      if (Notification.permission === "granted") {
+        const notification = new Notification("Sloka Sabha Chant List", {
+          body: `Time to read ${dueList.name}.`,
+        });
+        notification.onclick = () => {
+          window.focus();
+          void startChantList(dueList.id);
+        };
+      }
+
+      setChantLists((previous) =>
+        previous.map((list) => (list.id === dueList.id ? { ...list, lastNotifiedDate: todayDateKey } : list)),
+      );
+      setLiveMessage(`Time to read ${dueList.name}.`);
+    }, 30000);
+
+    return () => window.clearInterval(timer);
+  }, [chantLists, isHydrated, startChantList]);
+
+  useEffect(() => {
     if (route !== "home") return;
     const timer = window.setTimeout(() => {
       homeSearchInputRef.current?.focus();
     }, 120);
     return () => window.clearTimeout(timer);
   }, [route]);
+
+  useEffect(() => {
+    setIsSideMenuOpen(false);
+  }, [route]);
+
+  useEffect(() => {
+    if (route !== "detail" || !selectedPractice.startedAt || selectedPractice.endedAt) return;
+    const timer = window.setInterval(() => {
+      setTimeSpentTick((value) => value + 1);
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [route, selectedPractice.endedAt, selectedPractice.startedAt]);
 
   const readerScaleStyle = useMemo(
     () =>
@@ -790,6 +1254,34 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
 
       <main className={route === "landing" ? "landing-main" : undefined}>
         {liveMessage && <div className="toast visible">{liveMessage}</div>}
+        {chantCelebrationVisible && (
+          <div className="chant-celebration" role="status" aria-live="polite">
+            <div className="chant-celebration-confetti" aria-hidden="true">
+              {CELEBRATION_CONFETTI.map((piece, index) => (
+                <span
+                  className="confetti-piece"
+                  key={`confetti-piece-${index}`}
+                  style={
+                    {
+                      "--left": piece.left,
+                      "--delay": piece.delay,
+                      "--duration": piece.duration,
+                      "--color": piece.color,
+                    } as CSSProperties
+                  }
+                />
+              ))}
+            </div>
+            <article>
+              <div className="celebration-burst" aria-hidden="true">
+                🎉
+              </div>
+              <h3>Great Job</h3>
+              <p>{chantCelebrationMessage || "You completed your chant list."}</p>
+              <small>Taking you back home...</small>
+            </article>
+          </div>
+        )}
 
         {route === "landing" && (
           <section className="landing-screen active">
@@ -1331,6 +1823,24 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
                 <p>No special day-specific recommendation today. You can chant any favorite sloka.</p>
               )}
             </article>
+
+            <article className="event-card section-stack">
+              <h3>Chant Completion Calendar</h3>
+              <p className="mini-muted">Shows whether any sloka was completed on each day.</p>
+              <div className="completion-calendar-grid">
+                {recentCalendarDays.map((day) => (
+                  <span
+                    className={`completion-day ${day.completedCount > 0 ? "done" : ""} ${day.isToday ? "today" : ""}`}
+                    key={`completion-day-${day.key}`}
+                    title={`${day.key}: ${day.completedCount} completed`}
+                  >
+                    <small>{day.label}</small>
+                    <strong>{day.day}</strong>
+                    <em>{day.completedCount > 0 ? `${day.completedCount} done` : "Open"}</em>
+                  </span>
+                ))}
+              </div>
+            </article>
           </section>
         )}
 
@@ -1452,6 +1962,26 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
               )}
             </article>
 
+            <article className="event-card section-stack">
+              <h3>Chant Lists</h3>
+              <p>Manage your playlist-style chant lists on a dedicated page.</p>
+              {chantListStats.length === 0 ? (
+                <p className="mini-muted">No chant lists yet. Open Chant Lists to create your first one.</p>
+              ) : (
+                <ul className="top-list">
+                  {chantListStats.slice(0, 3).map((list) => (
+                    <li key={`session-chant-summary-${list.id}`}>
+                      <strong>{list.name}</strong>
+                      <span>{list.completedToday}/{list.total || 1} done today</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <button className="primary-button full" onClick={() => setRoute("chantlists")} type="button">
+                Open Chant Lists
+              </button>
+            </article>
+
             <article className="recommendation-card section-stack">
               <h3>Recommended Days</h3>
               {selectedRecommendation ? (
@@ -1524,6 +2054,135 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
                 </button>
               </div>
               {!isHydrated && <p className="mini-muted">Loading saved reminder settings...</p>}
+            </article>
+          </section>
+        )}
+
+        {route === "chantlists" && (
+          <section className="screen active">
+            <div className="screen-top">
+              <button className="icon-button" onClick={() => setRoute("sessions")} type="button" title="Back">
+                {"<"}
+              </button>
+              <div>
+                <h1>Chant Lists</h1>
+                <p>Create lists, schedule notifications, and run slokas back to back.</p>
+              </div>
+            </div>
+
+            <article className="event-card section-stack">
+              <h3>Create Chant List</h3>
+              <div className="chant-list-create">
+                <label className="field-label" htmlFor="chant-list-name">
+                  List name
+                </label>
+                <input
+                  className="search-input"
+                  id="chant-list-name"
+                  onChange={(event) => setChantListName(event.target.value)}
+                  placeholder="Morning Chant"
+                  value={chantListName}
+                />
+                <label className="field-label" htmlFor="chant-list-first-sloka">
+                  First sloka
+                </label>
+                <select
+                  className="search-input"
+                  id="chant-list-first-sloka"
+                  onChange={(event) => setChantListSelectedSlokaId(event.target.value)}
+                  value={chantListSelectedSlokaId}
+                >
+                  {slokaList.map((sloka) => (
+                    <option key={`chant-list-first-${sloka.id}`} value={sloka.id}>
+                      {sloka.title}
+                    </option>
+                  ))}
+                </select>
+                <button className="primary-button full" onClick={createChantList} type="button">
+                  Create Chant List
+                </button>
+              </div>
+            </article>
+
+            <article className="event-card section-stack">
+              <h3>Your Lists</h3>
+              {chantListStats.length === 0 ? (
+                <p className="mini-muted">No chant lists yet. Create one above.</p>
+              ) : (
+                <div className="chant-playlist-stack">
+                  {chantListStats.map((list) => {
+                    const isOpen = detailChantListTargetId === list.id;
+                    return (
+                      <article className={`chant-playlist-card ${activeChantListId === list.id ? "active" : ""}`} key={`playlist-${list.id}`}>
+                        <div className="chant-playlist-head">
+                          <div>
+                            <h4>{list.name}</h4>
+                            <p>{list.completedToday}/{list.total || 1} done today</p>
+                          </div>
+                          <div className="action-row">
+                            <button className="secondary-button" onClick={() => setDetailChantListId(isOpen ? "" : list.id)} type="button">
+                              {isOpen ? "Hide List" : "Open List"}
+                            </button>
+                            <button className="primary-button" onClick={() => void startChantList(list.id)} type="button">
+                              Start List
+                            </button>
+                          </div>
+                        </div>
+                        <div className="chant-playlist-settings">
+                          <label>
+                            Time
+                            <input
+                              onChange={(event) => updateChantList(list.id, { scheduleTime: event.target.value })}
+                              type="time"
+                              value={list.scheduleTime}
+                            />
+                          </label>
+                          <button
+                            className={`switch-button ${list.enabled ? "active" : ""}`}
+                            onClick={async () => {
+                              if (!list.enabled && typeof Notification !== "undefined" && Notification.permission === "default") {
+                                await Notification.requestPermission();
+                              }
+                              updateChantList(list.id, { enabled: !list.enabled });
+                            }}
+                            type="button"
+                          >
+                            {list.enabled ? "Notify On" : "Notify Off"}
+                          </button>
+                          <button className="secondary-button" onClick={() => addSlokaToChantList(list.id, chantListSelectedSlokaId)} type="button">
+                            Add Selected
+                          </button>
+                        </div>
+                        {isOpen && (
+                          <div className="chant-list">
+                            {list.slokaIds.map((slokaId, index) => {
+                              const sloka = slokaList.find((item) => item.id === slokaId);
+                              if (!sloka) return null;
+                              const entry = normalizePracticeEntry(slokaPractice[sloka.id]);
+                              const doneToday = entry.completedDates.includes(todayDateKey);
+                              return (
+                                <div className="chant-list-row" key={`playlist-${list.id}-${sloka.id}`}>
+                                  <SlokaTile sloka={sloka} />
+                                  <button onClick={() => void loadSlokaDetail(sloka.id, "chantlists")} type="button">
+                                    <strong>{index + 1}. {sloka.title}</strong>
+                                    <small>{doneToday ? "Done today" : "Not done today"}</small>
+                                  </button>
+                                  <button className="mini-remove-button" onClick={() => removeSlokaFromChantList(list.id, sloka.id)} type="button">
+                                    Remove
+                                  </button>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                        <button className="secondary-button full" onClick={() => deleteChantList(list.id)} type="button">
+                          Delete List
+                        </button>
+                      </article>
+                    );
+                  })}
+                </div>
+              )}
             </article>
           </section>
         )}
@@ -1711,12 +2370,81 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
               </div>
 
               <ShlokaTextBlock
+                activeLineIndex={selectedPractice.activeLineIndex}
                 language={readerLanguage}
+                lineHighlights={selectedPractice.lineHighlights}
                 lines={selectedSloka.lines}
+                onRemoveLineHighlight={removeSelectedLineHighlight}
+                onSelectLine={setActivePracticeLine}
+                onSetLineHighlight={setSelectedLineHighlight}
                 showMeaning={showMeaning}
                 title={selectedSloka.title}
               />
               <div className="ref-player-bottom-divider" aria-hidden="true" />
+
+              <article className="sloka-action-card">
+                <div
+                  className={`sloka-target-ring ${selectedSlokaDoneToday ? "done" : ""}`}
+                  aria-label={`Sloka progress ${selectedLinePercent}%`}
+                  style={{ ["--progress" as string]: `${selectedLinePercent}%` } as CSSProperties}
+                >
+                  <strong>{selectedSlokaDoneToday ? "Done" : `${selectedLinePercent}%`}</strong>
+                  <span>{selectedPractice.activeLineIndex + 1}/{selectedSloka.lines.length}</span>
+                </div>
+                <div className="sloka-action-copy">
+                  <h3>{selectedSlokaDoneToday ? "Finished today" : "Chant this sloka"}</h3>
+                  <p>
+                    {selectedPractice.startedAt && !selectedPractice.endedAt
+                      ? `Started ${new Date(selectedPractice.startedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+                      : selectedPractice.endedAt
+                        ? `Ended ${new Date(selectedPractice.endedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+                        : "Start when you begin reading, then finish when the sloka is complete."}
+                  </p>
+                  <span>Time spent: {formatElapsedTime(selectedSessionSeconds)}</span>
+                </div>
+                <label className="sloka-schedule-field" htmlFor="sloka-schedule-time">
+                  Schedule
+                  <input
+                    id="sloka-schedule-time"
+                    onChange={(event) => setSelectedScheduleTime(event.target.value)}
+                    type="time"
+                    value={selectedPractice.scheduleTime}
+                  />
+                </label>
+                <div className="sloka-action-buttons">
+                  <button className="secondary-button" onClick={startSlokaPractice} type="button">
+                    Start
+                  </button>
+                  <button className="primary-button" onClick={finishSlokaPractice} type="button">
+                    Finish
+                  </button>
+                  <button className="secondary-button" onClick={resetSlokaPractice} type="button">
+                    Reset
+                  </button>
+                </div>
+                {chantLists.length > 0 && (
+                  <div className="sloka-add-to-list">
+                    <select
+                      aria-label="Choose chant list"
+                      onChange={(event) => setDetailChantListId(event.target.value)}
+                      value={detailChantListTargetId}
+                    >
+                      {chantLists.map((list) => (
+                        <option key={`detail-list-option-${list.id}`} value={list.id}>
+                          {list.name}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      className="secondary-button"
+                      onClick={() => addSlokaToChantList(detailChantListTargetId, selectedSloka.id)}
+                      type="button"
+                    >
+                      Add to List
+                    </button>
+                  </div>
+                )}
+              </article>
 
               <ReaderControls
                 language={readerLanguage}
@@ -1751,26 +2479,37 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
           </section>
         )}
       </main>
-
       {route !== "landing" && route !== "detail" && (
-        <nav className="bottom-nav" aria-label="Primary">
-          <button className={route === "home" ? "active" : ""} onClick={() => setRoute("home")} type="button">
-            Home
+        <nav className="floating-dock" aria-label="Bottom Navigation">
+          <button className={route === "home" ? "active" : ""} onClick={() => setRoute("home")} type="button" title="Home">
+            ⌂
           </button>
-          <button className={route === "library" ? "active" : ""} onClick={() => setRoute("library")} type="button">
-            Shlokas
+          <button className={route === "favorites" ? "active" : ""} onClick={() => setRoute("favorites")} type="button" title="Favorites">
+            ♡
           </button>
-          <button className={route === "sessions" ? "active" : ""} onClick={() => setRoute("sessions")} type="button">
-            Sessions
-          </button>
-          <button className={route === "favorites" ? "active" : ""} onClick={() => setRoute("favorites")} type="button">
-            Favorites
-          </button>
-          <button className={route === "profile" ? "active" : ""} onClick={() => setRoute("profile")} type="button">
-            Profile
+          <button className={isSideMenuOpen ? "active" : ""} onClick={() => setIsSideMenuOpen((value) => !value)} type="button" title="Menu">
+            ☰
           </button>
         </nav>
       )}
+
+      {route !== "landing" && route !== "detail" && isSideMenuOpen && (
+        <section className="menu-sheet">
+          <button className="menu-sheet-backdrop" onClick={() => setIsSideMenuOpen(false)} type="button" />
+          <article className="menu-sheet-panel">
+            <h3>Menu</h3>
+            <div className="menu-sheet-list">
+              <button onClick={() => setRoute("library")} type="button"><strong>Shlokas</strong><small>Browse all slokas</small></button>
+              <button onClick={() => setRoute("sessions")} type="button"><strong>Sessions</strong><small>Practice and tracker</small></button>
+              <button onClick={() => setRoute("chantlists")} type="button"><strong>Chant Lists</strong><small>Playlist and schedule</small></button>
+              <button onClick={() => setRoute("calendar")} type="button"><strong>Calendar</strong><small>Done / not done</small></button>
+              <button onClick={() => setRoute("gods")} type="button"><strong>Gods</strong><small>Browse by deity</small></button>
+              <button onClick={() => setRoute("profile")} type="button"><strong>Profile</strong><small>Settings</small></button>
+            </div>
+          </article>
+        </section>
+      )}
+
     </div>
   );
 }
