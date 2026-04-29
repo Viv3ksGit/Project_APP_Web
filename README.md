@@ -11,6 +11,40 @@ npm run dev
 
 Open [http://127.0.0.1:3000](http://127.0.0.1:3000) with your browser.
 
+### One-command local bootstrap
+
+If you want a teammate-friendly setup after cloning the repo, use the bootstrap script for your platform.
+
+macOS / Linux:
+
+```bash
+bash scripts/bootstrap-dev.sh
+```
+
+Windows PowerShell:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\bootstrap-dev.ps1
+```
+
+What the scripts do:
+
+1. Check for Node.js 20+ and npm
+2. Try to install Node.js automatically using the platform package manager
+3. Run `npm ci`
+4. Run `npm run lint` and `npm run typecheck`
+5. Start the app locally
+
+Optional environment variables:
+
+```bash
+HOST=127.0.0.1
+PORT=3000
+SKIP_QUALITY_CHECKS=1
+```
+
+Use `SKIP_QUALITY_CHECKS=1` only when you need the app running quickly and do not want lint/typecheck to block startup.
+
 ## Android APK Build (Capacitor)
 
 This repo now includes a Capacitor Android wrapper in `android/`.
