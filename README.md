@@ -15,6 +15,14 @@ Do not open `out/index.html` or `mobile-web/index.html` directly for the web app
 
 Images, audio, video, decorative SVGs, and app fonts are served by the Next.js app from the repository. Public assets live in `public/`, and bundled fonts are configured in `app/layout.tsx`.
 
+If the page appears plain or unstyled, run:
+
+```bash
+npm run doctor
+```
+
+This starts the local app and verifies that the Next.js CSS bundle, Shiva image, and hero video are being served. If this passes, the repo is healthy and the issue is usually that the app was opened from a static HTML file or an old/cached URL instead of the local Next.js server.
+
 ### One-command local bootstrap
 
 If you want a teammate-friendly setup after cloning the repo, use the bootstrap script for your platform.

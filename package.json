@@ -9,6 +9,7 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
+    "doctor": "node scripts/check-app.mjs",
     "audit:deps": "npm audit --audit-level=high",
     "check:quality": "npm run lint && npm run typecheck && npm run build",
     "check:security": "npm run audit:deps",
