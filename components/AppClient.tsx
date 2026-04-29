@@ -425,7 +425,7 @@ function SlokaTile({ sloka }: { sloka: SlokaSummary }) {
 }
 
 export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
-  const [route, setRoute] = useState<Route>("landing");
+  const [route, setRouteState] = useState<Route>("landing");
   const [isSideMenuOpen, setIsSideMenuOpen] = useState<boolean>(false);
   const [detailBackRoute, setDetailBackRoute] = useState<Route>("home");
   const [slokaList] = useState<SlokaSummary[]>(initialSlokaList);
@@ -451,7 +451,6 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
   const [chantListSelectedSlokaId, setChantListSelectedSlokaId] = useState<string>(initialSloka.id);
   const [detailChantListId, setDetailChantListId] = useState<string>("");
   const [activeChantListId, setActiveChantListId] = useState<string>("");
-  const [pendingListSlokaId, setPendingListSlokaId] = useState<string>("");
   const [chantCelebrationVisible, setChantCelebrationVisible] = useState<boolean>(false);
   const [chantCelebrationMessage, setChantCelebrationMessage] = useState<string>("");
   const [reminders, setReminders] = useState<ReminderSettings>(DEFAULT_REMINDERS);
@@ -463,6 +462,11 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
   const [timeSpentTick, setTimeSpentTick] = useState<number>(0);
   const homeSearchInputRef = useRef<HTMLInputElement | null>(null);
   const startSearchInputRef = useRef<HTMLInputElement | null>(null);
+
+  const setRoute = useCallback((nextRoute: Route) => {
+    setIsSideMenuOpen(false);
+    setRouteState(nextRoute);
+  }, []);
 
   const categories = useMemo(() => {
     const values = new Set(slokaList.map((sloka) => sloka.category));
@@ -513,11 +517,8 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
   }, [selectedPractice.activeLineIndex, selectedSloka.lines.length]);
 
   const selectedSessionSeconds = useMemo(() => {
-    void timeSpentTick;
     if (!selectedPractice.startedAt || selectedPractice.endedAt) return selectedPractice.timeSpentSeconds;
-    const startedAt = new Date(selectedPractice.startedAt).getTime();
-    if (!Number.isFinite(startedAt)) return selectedPractice.timeSpentSeconds;
-    return selectedPractice.timeSpentSeconds + Math.max(0, Math.floor((Date.now() - startedAt) / 1000));
+    return selectedPractice.timeSpentSeconds + Math.max(0, timeSpentTick);
   }, [selectedPractice.endedAt, selectedPractice.startedAt, selectedPractice.timeSpentSeconds, timeSpentTick]);
 
   const recentCalendarDays = useMemo(() => {
@@ -834,67 +835,6 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
     [selectedSloka.lines.length, updateSelectedPractice],
   );
 
-  const startSlokaPractice = useCallback(() => {
-    const startedAt = new Date().toISOString();
-    updateSelectedPractice((entry) => ({
-      ...entry,
-      startedAt,
-      endedAt: "",
-    }));
-    setLiveMessage(`Started ${selectedSloka.title}.`);
-  }, [selectedSloka.title, updateSelectedPractice]);
-
-  const finishSlokaPractice = useCallback(() => {
-    const endedAt = new Date();
-    updateSelectedPractice((entry) => {
-      const startedAt = entry.startedAt ? new Date(entry.startedAt).getTime() : endedAt.getTime();
-      const elapsedSeconds = Number.isFinite(startedAt) ? Math.max(0, Math.floor((endedAt.getTime() - startedAt) / 1000)) : 0;
-      const completedDates = entry.completedDates.includes(todayDateKey)
-        ? entry.completedDates
-        : [...entry.completedDates, todayDateKey].slice(-90);
-      return {
-        ...entry,
-        endedAt: endedAt.toISOString(),
-        timeSpentSeconds: entry.timeSpentSeconds + elapsedSeconds,
-        activeLineIndex: Math.max(0, selectedSloka.lines.length - 1),
-        completedDates,
-      };
-    });
-    logChantCount(selectedSloka.id, 1);
-    if (activeChantList) {
-      const currentIndex = activeChantList.slokaIds.indexOf(selectedSloka.id);
-      const nextSlokaId = currentIndex >= 0 ? activeChantList.slokaIds[currentIndex + 1] : "";
-      if (nextSlokaId) {
-        setPendingListSlokaId(nextSlokaId);
-        setLiveMessage(`Finished ${selectedSloka.title}. Opening next sloka.`);
-        return;
-      }
-      const isLastInList = currentIndex >= 0 && currentIndex === Math.max(0, activeChantList.slokaIds.length - 1);
-      if (isLastInList) {
-        setActiveChantListId("");
-        setChantCelebrationMessage(`Great job! You finished "${activeChantList.name}".`);
-        setChantCelebrationVisible(true);
-        window.setTimeout(() => {
-          setChantCelebrationVisible(false);
-          setRoute("home");
-        }, 2300);
-        setLiveMessage(`Finished ${selectedSloka.title}. Chant list complete.`);
-        return;
-      }
-    }
-    setLiveMessage(`Marked ${selectedSloka.title} complete.`);
-  }, [activeChantList, logChantCount, selectedSloka.id, selectedSloka.lines.length, selectedSloka.title, todayDateKey, updateSelectedPractice]);
-
-  const resetSlokaPractice = useCallback(() => {
-    updateSelectedPractice((entry) => ({
-      ...entry,
-      startedAt: "",
-      endedAt: "",
-      activeLineIndex: 0,
-    }));
-    setLiveMessage(`Reset ${selectedSloka.title} reading progress.`);
-  }, [selectedSloka.title, updateSelectedPractice]);
-
   const setSelectedScheduleTime = useCallback(
     (scheduleTime: string) => {
       updateSelectedPractice((entry) => ({
@@ -951,23 +891,84 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
 
   const fadeOutAmbientDrone = useCallback(async () => {}, []);
 
-  const loadSlokaDetail = useCallback(
-    async (slokaId: string, sourceRoute: Route = "library") => {
-      try {
-        const response = await fetch(`/api/slokas/${encodeURIComponent(slokaId)}`);
-        if (!response.ok) throw new Error("Unable to load sloka.");
-        const payload = (await response.json()) as { sloka?: Sloka };
-        if (!payload.sloka) throw new Error("Sloka data missing.");
-        await fadeOutAmbientDrone();
-        setSelectedSloka(payload.sloka);
-        setDetailBackRoute(sourceRoute);
-        setRoute("detail");
-      } catch {
-        setLiveMessage("Unable to open sloka. Please try again.");
+  const loadSlokaDetail = useCallback(async (slokaId: string, sourceRoute: Route = "library") => {
+    try {
+      const response = await fetch(`/api/slokas/${encodeURIComponent(slokaId)}`);
+      if (!response.ok) throw new Error("Unable to load sloka.");
+      const payload = (await response.json()) as { sloka?: Sloka };
+      if (!payload.sloka) throw new Error("Sloka data missing.");
+      await fadeOutAmbientDrone();
+      setSelectedSloka(payload.sloka);
+      setDetailBackRoute(sourceRoute);
+      setRoute("detail");
+    } catch {
+      setLiveMessage("Unable to open sloka. Please try again.");
+    }
+  }, [fadeOutAmbientDrone, setRoute]);
+
+  const startSlokaPractice = useCallback(() => {
+    const startedAt = new Date().toISOString();
+    setTimeSpentTick(0);
+    updateSelectedPractice((entry) => ({
+      ...entry,
+      startedAt,
+      endedAt: "",
+    }));
+    setLiveMessage(`Started ${selectedSloka.title}.`);
+  }, [selectedSloka.title, updateSelectedPractice]);
+
+  const finishSlokaPractice = useCallback(() => {
+    const endedAt = new Date();
+    updateSelectedPractice((entry) => {
+      const startedAt = entry.startedAt ? new Date(entry.startedAt).getTime() : endedAt.getTime();
+      const elapsedSeconds = Number.isFinite(startedAt) ? Math.max(0, Math.floor((endedAt.getTime() - startedAt) / 1000)) : 0;
+      const completedDates = entry.completedDates.includes(todayDateKey)
+        ? entry.completedDates
+        : [...entry.completedDates, todayDateKey].slice(-90);
+      return {
+        ...entry,
+        endedAt: endedAt.toISOString(),
+        timeSpentSeconds: entry.timeSpentSeconds + elapsedSeconds,
+        activeLineIndex: Math.max(0, selectedSloka.lines.length - 1),
+        completedDates,
+      };
+    });
+    logChantCount(selectedSloka.id, 1);
+    if (activeChantList) {
+      const currentIndex = activeChantList.slokaIds.indexOf(selectedSloka.id);
+      const nextSlokaId = currentIndex >= 0 ? activeChantList.slokaIds[currentIndex + 1] : "";
+      if (nextSlokaId) {
+        setTimeSpentTick(0);
+        setLiveMessage(`Finished ${selectedSloka.title}. Opening next sloka.`);
+        void loadSlokaDetail(nextSlokaId, "sessions");
+        return;
       }
-    },
-    [fadeOutAmbientDrone, setDetailBackRoute, setSelectedSloka, setRoute],
-  );
+      const isLastInList = currentIndex >= 0 && currentIndex === Math.max(0, activeChantList.slokaIds.length - 1);
+      if (isLastInList) {
+        setActiveChantListId("");
+        setChantCelebrationMessage(`Great job! You finished "${activeChantList.name}".`);
+        setChantCelebrationVisible(true);
+        window.setTimeout(() => {
+          setChantCelebrationVisible(false);
+          setRoute("home");
+        }, 2300);
+        setLiveMessage(`Finished ${selectedSloka.title}. Chant list complete.`);
+        return;
+      }
+    }
+    setLiveMessage(`Marked ${selectedSloka.title} complete.`);
+  }, [activeChantList, loadSlokaDetail, logChantCount, selectedSloka.id, selectedSloka.lines.length, selectedSloka.title, setRoute, todayDateKey, updateSelectedPractice]);
+
+  const resetSlokaPractice = useCallback(() => {
+    setTimeSpentTick(0);
+    updateSelectedPractice((entry) => ({
+      ...entry,
+      startedAt: "",
+      endedAt: "",
+      activeLineIndex: 0,
+    }));
+    setLiveMessage(`Reset ${selectedSloka.title} reading progress.`);
+  }, [selectedSloka.title, updateSelectedPractice]);
 
   const startChantList = useCallback(
     async (listId: string) => {
@@ -1002,7 +1003,7 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
     setGuidedStart(true);
     setShowStartPrompt(false);
     setRoute("home");
-  }, [findMatchingSlokas, loadSlokaDetail, startPromptDuration, startPromptQuery]);
+  }, [findMatchingSlokas, loadSlokaDetail, setRoute, startPromptDuration, startPromptQuery]);
 
   const decreaseReaderFontScale = useCallback(() => {
     setReaderFontScale((value) => Math.max(0.5, Number((value - 0.05).toFixed(2))));
@@ -1172,13 +1173,6 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
   }, [isHydrated, reminders, selectedSloka.title]);
 
   useEffect(() => {
-    if (!pendingListSlokaId) return;
-    const nextSlokaId = pendingListSlokaId;
-    setPendingListSlokaId("");
-    void loadSlokaDetail(nextSlokaId, "sessions");
-  }, [loadSlokaDetail, pendingListSlokaId]);
-
-  useEffect(() => {
     if (!isHydrated || chantLists.length === 0) return;
     if (typeof window === "undefined" || typeof Notification === "undefined") return;
 
@@ -1216,10 +1210,6 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
       homeSearchInputRef.current?.focus();
     }, 120);
     return () => window.clearTimeout(timer);
-  }, [route]);
-
-  useEffect(() => {
-    setIsSideMenuOpen(false);
   }, [route]);
 
   useEffect(() => {
