@@ -502,6 +502,14 @@ function RitualNavIcon({ name }: { name: "chants" | "counter" | "home" | "menu" 
   );
 }
 
+function getDayGreeting(date: Date) {
+  const hour = date.getHours();
+  if (hour < 12) return "Good Morning";
+  if (hour < 17) return "Good Afternoon";
+  if (hour < 21) return "Good Evening";
+  return "Good Night";
+}
+
 export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
   const [route, setRouteState] = useState<Route>("landing");
   const [isSideMenuOpen, setIsSideMenuOpen] = useState<boolean>(false);
@@ -534,6 +542,7 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
   const [reminders, setReminders] = useState<ReminderSettings>(DEFAULT_REMINDERS);
   const [todayDay, setTodayDay] = useState<string>("");
   const [todayCalendar, setTodayCalendar] = useState<TamilCalendarToday | null>(null);
+  const [dayGreeting] = useState<string>(() => getDayGreeting(new Date()));
   const [readerFontScale, setReaderFontScale] = useState<number>(DEFAULT_READER_PREFS.fontScale);
   const [readerLanguage, setReaderLanguage] = useState<ReaderLanguage>(DEFAULT_READER_PREFS.language);
   const [showMeaning, setShowMeaning] = useState<boolean>(DEFAULT_READER_PREFS.showMeaning);
@@ -1493,12 +1502,9 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
         {route === "home" && (
           <section className="screen active">
             <section className="ritual-home-hero" aria-label="My Shloka Ritual home">
-              <div className="ritual-home-logo">
-                <RitualBrandLogo className="ritual-home-brand-image" priority />
-              </div>
               <div>
-                <p className="ritual-eyebrow">Good Morning</p>
-                <h1 className="sr-only">My Shloka Ritual</h1>
+                <p className="ritual-eyebrow">{dayGreeting}</p>
+                <h1>My Shloka Ritual</h1>
                 <p>Daily chants for inner calm</p>
               </div>
             </section>

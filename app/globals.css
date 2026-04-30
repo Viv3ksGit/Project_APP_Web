@@ -5959,36 +5959,23 @@ textarea::placeholder {
 /* Ritual home screen inspired by the new identity reference */
 .ritual-home-hero {
   display: grid;
-  gap: 2px;
+  gap: 4px;
   justify-items: center;
-  padding: 2px 18px 12px;
+  padding: 10px 18px 16px;
   text-align: center;
-}
-
-.ritual-home-logo {
-  display: grid;
-  width: min(188px, 64vw);
-  min-height: 112px;
-  place-items: center;
-  padding: 0;
-}
-
-.ritual-home-brand-image {
-  max-width: 188px;
-  border-radius: 0;
 }
 
 .ritual-home-hero h1 {
   margin: 0;
   color: var(--ritual-green-dark);
   font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(34px, 9vw, 44px);
-  font-weight: 500;
-  line-height: 1;
+  font-size: clamp(24px, 6.8vw, 34px);
+  font-weight: 600;
+  line-height: 1.08;
 }
 
 .ritual-home-hero p {
-  margin: 3px 0 0;
+  margin: 2px 0 0;
   color: var(--ritual-muted);
   font-size: 12px;
   font-weight: 800;
@@ -5997,10 +5984,10 @@ textarea::placeholder {
 }
 
 .ritual-home-hero .ritual-eyebrow {
-  margin: 0;
+  margin: 0 0 2px;
   color: var(--ritual-ink);
-  font-size: 13px;
-  font-weight: 800;
+  font-size: 14px;
+  font-weight: 900;
   letter-spacing: 0;
   text-transform: none;
 }
