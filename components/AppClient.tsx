@@ -57,6 +57,7 @@ const DEITY_PLAYER_HERO_PHOTOS: Partial<Record<string, string>> = {
   Shiva: "/deities/line/shiva-player-clean-v2.png",
 };
 const BRAND_LOGO_SRC = "/brand/my-shloka-ritual-logo-transparent.png";
+const BRAND_MARK_SRC = "/brand/my-shloka-ritual-mark.png";
 const POPULAR_SLOKA_ORDER = [
   "hanuman-chalisa",
   "lingashtakam",
@@ -1513,8 +1514,15 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
                 aria-label={`Today goal ${dailyProgressPercent}% complete`}
                 style={{ ["--progress" as string]: `${dailyProgressPercent}%` } as CSSProperties}
               >
-                <strong>{dailyProgressPercent}%</strong>
-                <span>done</span>
+                <Image
+                  alt=""
+                  aria-hidden="true"
+                  className="ritual-goal-mark"
+                  height={610}
+                  src={BRAND_MARK_SRC}
+                  unoptimized
+                  width={760}
+                />
               </div>
               <div className="ritual-stat-block right">
                 <span className="ritual-stat-label">Today&apos;s Goal</span>

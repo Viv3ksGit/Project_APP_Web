@@ -8,6 +8,7 @@ const checks = [
   { label: "home page", path: "/", text: "app-shell" },
   { label: "CSS bundle", path: "/_next/static/css/app/layout.css", text: ".app-shell" },
   { label: "brand logo", path: "/brand/my-shloka-ritual-logo-transparent.png", contentType: "image/png" },
+  { label: "brand mark", path: "/brand/my-shloka-ritual-mark.png", contentType: "image/png" },
   { label: "Shiva line image", path: "/deities/line/shiva.png", contentType: "image/png" },
   { label: "hero video", path: "/media/sloka-hero.mp4", contentType: "video/mp4" },
 ];
