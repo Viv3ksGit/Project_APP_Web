@@ -56,7 +56,7 @@ const DEITY_PHOTOS: Record<string, string> = {
 const DEITY_PLAYER_HERO_PHOTOS: Partial<Record<string, string>> = {
   Shiva: "/deities/line/shiva-player-clean-v2.png",
 };
-const BRAND_LOGO_SRC = "/brand/my-shloka-ritual-logo.png";
+const BRAND_LOGO_SRC = "/brand/my-shloka-ritual-logo-transparent.png";
 const POPULAR_SLOKA_ORDER = [
   "hanuman-chalisa",
   "lingashtakam",
