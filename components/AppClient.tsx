@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type SVGProps } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type SVGProps, type TouchEvent as ReactTouchEvent } from "react";
 import Image from "next/image";
 import Sanscript from "@indic-transliteration/sanscript";
 import type { Sloka, SlokaSummary } from "@/lib/domain/types";
@@ -46,6 +46,7 @@ const SLOKA_RECOMMENDATIONS: Record<string, { days: string[]; reason: string }> 
   "guru-brahma-guru-vishnu": { days: ["Thursday"], reason: "Thursday is associated with Guru worship." },
   "shantakaram-bhujagashayanam": { days: ["Thursday", "Saturday"], reason: "Often chanted for Vishnu prayers on these days." },
 };
+const HANUMAN_ICON_SRC = "/brand/hanuman-icon.png";
 const DEITY_PHOTOS: Record<string, string> = {
   Shiva: "/deities/line/shiva.png",
   Hanuman: "/deities/line/hanuman.png",
@@ -57,10 +58,14 @@ const DEITY_PLAYER_HERO_PHOTOS: Partial<Record<string, string>> = {
   Shiva: "/deities/line/shiva-player-clean-v2.png",
 };
 const BRAND_MARK_SRC = "/brand/my-shloka-ritual-mark.png";
-const LANDING_PREVIEW_SCREENS = [
-  "/onboarding/screen-1.png",
-  "/onboarding/screen-2.png",
-  "/onboarding/screen-3.png",
+const BRAND_LOGO_SRC = "/brand/my-shloka-ritual-logo-transparent.png";
+const LANDING_ONBOARDING_STEPS = [
+  { id: "brand" },
+  {
+    description: "Daily chants, mindful listening and meaningful progress to bring inner calm.",
+    id: "nourish",
+    title: "Nourish Your Soul",
+  },
 ] as const;
 const POPULAR_SLOKA_ORDER = [
   "hanuman-chalisa",
@@ -536,13 +541,34 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
   const [readerLanguage, setReaderLanguage] = useState<ReaderLanguage>(DEFAULT_READER_PREFS.language);
   const [showMeaning, setShowMeaning] = useState<boolean>(DEFAULT_READER_PREFS.showMeaning);
   const [timeSpentTick, setTimeSpentTick] = useState<number>(0);
+  const [landingSlideIndex, setLandingSlideIndex] = useState<number>(0);
   const homeSearchInputRef = useRef<HTMLInputElement | null>(null);
   const startSearchInputRef = useRef<HTMLInputElement | null>(null);
+  const landingTouchStartX = useRef<number | null>(null);
 
   const setRoute = useCallback((nextRoute: Route) => {
     setIsSideMenuOpen(false);
     setRouteState(nextRoute);
   }, []);
+
+  const goToLandingSlide = useCallback((nextIndex: number) => {
+    const maxIndex = LANDING_ONBOARDING_STEPS.length - 1;
+    setLandingSlideIndex(Math.max(0, Math.min(nextIndex, maxIndex)));
+  }, []);
+
+  const handleLandingTouchStart = useCallback((event: ReactTouchEvent<HTMLDivElement>) => {
+    landingTouchStartX.current = event.touches[0]?.clientX ?? null;
+  }, []);
+
+  const handleLandingTouchEnd = useCallback((event: ReactTouchEvent<HTMLDivElement>) => {
+    const startX = landingTouchStartX.current;
+    const endX = event.changedTouches[0]?.clientX ?? null;
+    landingTouchStartX.current = null;
+    if (startX === null || endX === null) return;
+    const deltaX = endX - startX;
+    if (Math.abs(deltaX) < 40) return;
+    goToLandingSlide(landingSlideIndex + (deltaX < 0 ? 1 : -1));
+  }, [goToLandingSlide, landingSlideIndex]);
 
   const categories = useMemo(() => {
     const values = new Set(slokaList.map((sloka) => sloka.category));
@@ -1362,33 +1388,86 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
             <div className="landing-content">
               {!showStartPrompt && (
                 <article className="landing-greeting-preview landing-onboarding-card">
-                  <h2>My Shloka Ritual - App UI</h2>
-                  <p>Screen by Screen</p>
-                  <div className="landing-onboarding-strip" aria-label="Preview screens">
-                    {LANDING_PREVIEW_SCREENS.map((screenPath, index) => (
-                      <div className="landing-onboarding-phone" key={screenPath}>
-                        <Image
-                          alt={`Onboarding preview ${index + 1}`}
-                          className="landing-onboarding-image"
-                          height={694}
-                          priority={index === 0}
-                          sizes="(max-width: 900px) 38vw, 210px"
-                          src={screenPath}
-                          unoptimized
-                          width={384}
-                        />
-                      </div>
-                    ))}
+                  <div className="landing-carousel-shell">
+                    <div
+                      className="landing-carousel-track"
+                      onTouchEnd={handleLandingTouchEnd}
+                      onTouchStart={handleLandingTouchStart}
+                      style={{ transform: `translateX(-${landingSlideIndex * 100}%)` }}
+                    >
+                      {LANDING_ONBOARDING_STEPS.map((step, index) => (
+                        <div
+                          aria-hidden={landingSlideIndex !== index}
+                          className={`landing-carousel-slide ${landingSlideIndex === index ? "active" : ""}`}
+                          key={step.id}
+                        >
+                          <section className={`landing-onboarding-step landing-onboarding-step-${step.id}`}>
+                            <div className="landing-onboarding-body">
+                              {step.id === "brand" ? (
+                                <div className="landing-brand-art">
+                                  <Image
+                                    alt="My Shloka Ritual"
+                                    className="landing-brand-logo"
+                                    height={1280}
+                                    priority
+                                    sizes="(max-width: 900px) 76vw, 290px"
+                                    src={BRAND_LOGO_SRC}
+                                    unoptimized
+                                    width={1280}
+                                  />
+                                </div>
+                              ) : (
+                                <>
+                                  <div className="landing-step-mark">
+                                    <Image
+                                    alt=""
+                                    aria-hidden="true"
+                                    className="landing-step-mark-image"
+                                    height={760}
+                                    sizes="96px"
+                                    src={BRAND_MARK_SRC}
+                                    unoptimized
+                                    width={760}
+                                  />
+                                </div>
+                                <div className="landing-step-copy">
+                                    <h2>{step.title}</h2>
+                                    <p>{step.description}</p>
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                            <div className="landing-onboarding-footer">
+                              <div className="landing-carousel-dots" aria-label="Onboarding pages">
+                                {LANDING_ONBOARDING_STEPS.map((dotStep, index) => (
+                                  <button
+                                    aria-label={`Go to screen ${index + 1}`}
+                                    className={`landing-carousel-dot ${landingSlideIndex === index ? "active" : ""}`}
+                                    key={`landing-dot-${step.id}-${dotStep.id}`}
+                                    onClick={() => goToLandingSlide(index)}
+                                    type="button"
+                                  />
+                                ))}
+                              </div>
+                              {step.id === "nourish" ? (
+                                <button
+                                  className="landing-ghost-button"
+                                  onClick={() => {
+                                    setShowStartPrompt(true);
+                                  }}
+                                  type="button"
+                                >
+                                  Enter Slokas
+                                </button>
+                              ) : (
+                                <span className="landing-step-spacer" aria-hidden="true" />
+                              )}
+                            </div>
+                          </section>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  <button
-                    className="landing-ghost-button"
-                    onClick={() => {
-                      setShowStartPrompt(true);
-                    }}
-                    type="button"
-                  >
-                    Enter Slokas
-                  </button>
                 </article>
               )}
             </div>
@@ -1814,11 +1893,11 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
                     <div className="deity-card-top">
                       <Image
                         alt={`${deity.category} deity`}
-                        className="deity-icon-photo"
+                        className={`deity-icon-photo ${deity.category === "Hanuman" ? "hanuman-deity-image" : ""}`}
                         height={72}
                         priority={index < 2}
                         sizes="72px"
-                        src={DEITY_PHOTOS[deity.category] ?? DEITY_PHOTOS.Shiva}
+                        src={deity.category === "Hanuman" ? HANUMAN_ICON_SRC : DEITY_PHOTOS[deity.category] ?? DEITY_PHOTOS.Shiva}
                         unoptimized
                         width={72}
                       />
