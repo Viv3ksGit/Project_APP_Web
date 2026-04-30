@@ -430,12 +430,12 @@ function RitualBrandLogo({ className = "", priority = false }: { className?: str
     <Image
       alt="My Shloka Ritual"
       className={`ritual-brand-logo ${className}`}
-      height={420}
+      height={1254}
       priority={priority}
-      sizes="(max-width: 480px) 220px, 280px"
+      sizes="(max-width: 480px) 220px, 320px"
       src={BRAND_LOGO_SRC}
       unoptimized
-      width={366}
+      width={1254}
     />
   );
 }
