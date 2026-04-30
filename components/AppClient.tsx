@@ -56,6 +56,7 @@ const DEITY_PHOTOS: Record<string, string> = {
 const DEITY_PLAYER_HERO_PHOTOS: Partial<Record<string, string>> = {
   Shiva: "/deities/line/shiva-player-clean-v2.png",
 };
+const BRAND_LOGO_SRC = "/brand/my-shloka-ritual-logo.png";
 const POPULAR_SLOKA_ORDER = [
   "hanuman-chalisa",
   "lingashtakam",
@@ -422,6 +423,21 @@ function SlokaTile({ sloka }: { sloka: SlokaSummary }) {
   }
 
   return <span className="tile">{sloka.category.slice(0, 2).toUpperCase()}</span>;
+}
+
+function RitualBrandLogo({ className = "", priority = false }: { className?: string; priority?: boolean }) {
+  return (
+    <Image
+      alt="My Shloka Ritual"
+      className={`ritual-brand-logo ${className}`}
+      height={420}
+      priority={priority}
+      sizes="(max-width: 480px) 220px, 280px"
+      src={BRAND_LOGO_SRC}
+      unoptimized
+      width={366}
+    />
+  );
 }
 
 function LotusBrandIcon(props: SVGProps<SVGSVGElement>) {
@@ -1347,6 +1363,7 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
             <div className="landing-content">
               {!showStartPrompt && (
                 <article className="landing-greeting-preview">
+                  <RitualBrandLogo className="landing-brand-logo" priority />
                   <h2>Namaste ॐ</h2>
                   <p>Begin your day with divine chants.</p>
                   <button
@@ -1477,12 +1494,12 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
         {route === "home" && (
           <section className="screen active">
             <section className="ritual-home-hero" aria-label="My Shloka Ritual home">
-              <div className="ritual-home-logo" aria-hidden="true">
-                <LotusBrandIcon />
+              <div className="ritual-home-logo">
+                <RitualBrandLogo className="ritual-home-brand-image" priority />
               </div>
               <div>
                 <p className="ritual-eyebrow">Good Morning</p>
-                <h1>My Shloka Ritual</h1>
+                <h1 className="sr-only">My Shloka Ritual</h1>
                 <p>Daily chants for inner calm</p>
               </div>
             </section>

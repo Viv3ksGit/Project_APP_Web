@@ -31,7 +31,7 @@ If `nvm` is not installed, install Node.js 20+ first, then run `npm ci`, `npm ru
 
 Do not open `out/index.html` or `mobile-web/index.html` directly for the web app. Those files are fallback shells and will not include the real Next.js CSS, fonts, API routes, or generated asset bundles. A teammate should run the app with `npm ci` and `npm run dev`, or open the deployed URL.
 
-Images, audio, video, decorative SVGs, and app fonts are served by the Next.js app from the repository. Public assets live in `public/`, and bundled fonts are configured in `app/layout.tsx`.
+Images, audio, video, decorative SVGs, the PowerPoint brand logo, and app fonts are served by the Next.js app from the repository. Public assets live in `public/`, and bundled fonts are configured in `app/layout.tsx`.
 
 If the page appears plain or unstyled, run:
 
