@@ -46,15 +46,16 @@ const SLOKA_RECOMMENDATIONS: Record<string, { days: string[]; reason: string }> 
   "guru-brahma-guru-vishnu": { days: ["Thursday"], reason: "Thursday is associated with Guru worship." },
   "shantakaram-bhujagashayanam": { days: ["Thursday", "Saturday"], reason: "Often chanted for Vishnu prayers on these days." },
 };
-const HANUMAN_ICON_SRC = "/brand/hanuman-icon.png";
+const HANUMAN_ICON_SRC = "/brand/hanuman-icon-clean.png";
 const DEITY_PHOTOS: Record<string, string> = {
   Shiva: "/deities/line/shiva.png",
-  Hanuman: "/deities/line/hanuman.png",
+  Hanuman: HANUMAN_ICON_SRC,
   Durga: "/deities/line/durga.png",
   Vishnu: "/deities/line/vishnu-clean.png",
   Guru: "/deities/line/ayyappa.png",
 };
 const DEITY_PLAYER_HERO_PHOTOS: Partial<Record<string, string>> = {
+  Hanuman: HANUMAN_ICON_SRC,
   Shiva: "/deities/line/shiva-player-clean-v2.png",
 };
 const BRAND_MARK_SRC = "/brand/my-shloka-ritual-mark.png";
@@ -304,7 +305,7 @@ function PlayerHeroCard({ imageSrc, deityName }: { imageSrc: string; deityName: 
       <div className="ref-player-ring">
         <Image
           alt={`${deityName} deity`}
-          className={`ref-player-hero-image ${deityClassName}`}
+          className={`ref-player-hero-image ${deityClassName} ${deityName === "Hanuman" ? "hanuman-deity-image" : ""}`}
           height={180}
           sizes="180px"
           src={imageSrc}
@@ -427,7 +428,15 @@ function SlokaTile({ sloka }: { sloka: SlokaSummary }) {
   if (photoSrc) {
     return (
       <span className="tile image">
-        <Image alt={`${sloka.category} icon`} className="tile-image" height={46} sizes="46px" src={photoSrc} unoptimized width={46} />
+        <Image
+          alt={`${sloka.category} icon`}
+          className={`tile-image ${sloka.category === "Hanuman" ? "hanuman-deity-image" : ""}`}
+          height={46}
+          sizes="46px"
+          src={photoSrc}
+          unoptimized
+          width={46}
+        />
       </span>
     );
   }
@@ -1736,10 +1745,10 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
                   >
                     <Image
                       alt={`${deity.category} icon`}
-                      className="deity-quick-image"
+                      className={`deity-quick-image ${deity.category === "Hanuman" ? "hanuman-deity-image" : ""}`}
                       height={42}
                       sizes="42px"
-                      src={DEITY_PHOTOS[deity.category] ?? DEITY_PHOTOS.Shiva}
+                      src={deity.category === "Hanuman" ? HANUMAN_ICON_SRC : DEITY_PHOTOS[deity.category] ?? DEITY_PHOTOS.Shiva}
                       unoptimized
                       width={42}
                     />
@@ -2110,7 +2119,7 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
               <div className="session-preview-avatar">
                 <Image
                   alt={`${selectedSloka.category} deity`}
-                  className="session-preview-image"
+                  className={`session-preview-image ${selectedSloka.category === "Hanuman" ? "hanuman-deity-image" : ""}`}
                   height={140}
                   sizes="140px"
                   src={DEITY_PHOTOS[selectedSloka.category] ?? DEITY_PHOTOS.Shiva}

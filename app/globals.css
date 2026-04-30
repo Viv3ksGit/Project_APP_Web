@@ -1006,6 +1006,9 @@ p {
 }
 
 .hanuman-deity-image {
+  border-radius: inherit;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(255, 253, 248, 0.96), rgba(243, 237, 224, 0.88));
   mix-blend-mode: multiply;
   filter: saturate(0.98) contrast(1.01);
 }
@@ -2697,7 +2700,7 @@ body {
   min-width: 78px;
   border: 1px solid rgba(27, 94, 32, 0.18);
   border-radius: 14px;
-  background: #ffffff;
+  background: #f8f3e8;
   padding: 8px 8px 10px;
   display: grid;
   justify-items: center;
@@ -4720,6 +4723,12 @@ body {
   border: 2px solid rgba(255, 253, 248, 0.9);
 }
 
+.ref-player-hero-image.hanuman-deity-image {
+  object-fit: contain;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(255, 253, 248, 0.98), rgba(243, 237, 224, 0.9));
+}
+
 .ref-player-text-card {
   padding: 80px 22px 8px;
 }
@@ -4967,6 +4976,11 @@ body {
 .ref-player-screen .ref-player-hero-image {
   object-fit: contain !important;
   background: transparent !important;
+}
+
+.ref-player-screen .ref-player-hero-image.hanuman-deity-image {
+  background:
+    radial-gradient(circle at 50% 42%, rgba(255, 253, 248, 0.98), rgba(243, 237, 224, 0.9)) !important;
 }
 
 /* Reader-focused detail screen overrides */
