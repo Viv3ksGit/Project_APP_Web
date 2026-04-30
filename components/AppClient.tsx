@@ -1365,7 +1365,6 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
                 <article className="landing-greeting-preview">
                   <RitualBrandLogo className="landing-brand-logo" priority />
                   <h2>Namaste ॐ</h2>
-                  <p>Begin your day with divine chants.</p>
                   <button
                     className="landing-ghost-button"
                     onClick={() => {

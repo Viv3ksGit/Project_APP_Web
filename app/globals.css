@@ -355,15 +355,15 @@ main {
 }
 
 .landing-greeting-preview {
-  width: min(520px, 100%);
+  width: min(420px, 92vw);
   border: 1px solid #d9d4c7;
   border-radius: 20px;
   background: rgba(255, 253, 248, 0.74);
   backdrop-filter: blur(6px);
-  padding: 18px 20px 20px;
+  padding: 18px 18px 20px;
   box-shadow: 0 14px 28px rgba(23, 73, 45, 0.16);
   display: grid;
-  gap: 12px;
+  gap: 10px;
 }
 
 .landing-greeting-preview h2 {
@@ -373,8 +373,8 @@ main {
 }
 
 .landing-greeting-preview .landing-brand-logo {
-  max-width: min(248px, 58vw);
-  margin: -6px auto -10px;
+  max-width: min(218px, 56vw);
+  margin: -4px auto -10px;
   border-radius: 0;
   opacity: 1;
 }
@@ -391,7 +391,8 @@ main {
 }
 
 .landing-ghost-button {
-  min-width: 156px;
+  width: 100%;
+  min-width: 0;
   min-height: 40px;
   padding: 0 16px;
   border: 1px solid rgba(23, 73, 45, 0.24);
