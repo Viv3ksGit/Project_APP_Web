@@ -1306,8 +1306,8 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
   );
 
   return (
-    <div className={`app-shell ${route === "landing" ? "landing-mode" : ""}`}>
-      {route !== "landing" && route !== "detail" && (
+    <div className={`app-shell route-${route} ${route === "landing" ? "landing-mode" : ""}`}>
+      {route !== "landing" && route !== "detail" && route !== "home" && (
         <header className="app-header">
           <div className="brand">
             <span className="brand-mark">
@@ -1364,7 +1364,6 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
               {!showStartPrompt && (
                 <article className="landing-greeting-preview">
                   <RitualBrandLogo className="landing-brand-logo" priority />
-                  <h2>Namaste ॐ</h2>
                   <button
                     className="landing-ghost-button"
                     onClick={() => {

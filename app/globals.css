@@ -347,7 +347,7 @@ main {
   min-height: 100vh;
   max-width: 680px;
   margin: 0 auto;
-  padding: 24px;
+  padding: clamp(18px, 4vw, 32px);
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -355,15 +355,17 @@ main {
 }
 
 .landing-greeting-preview {
-  width: min(420px, 92vw);
-  border: 1px solid #d9d4c7;
-  border-radius: 20px;
-  background: rgba(255, 253, 248, 0.74);
-  backdrop-filter: blur(6px);
-  padding: 18px 18px 20px;
-  box-shadow: 0 14px 28px rgba(23, 73, 45, 0.16);
+  width: min(360px, 90vw);
+  border: 1px solid rgba(255, 253, 248, 0.58);
+  border-radius: 30px;
+  background:
+    linear-gradient(180deg, rgba(255, 253, 248, 0.74), rgba(255, 253, 248, 0.62)),
+    rgba(255, 253, 248, 0.58);
+  backdrop-filter: blur(14px);
+  padding: 18px;
+  box-shadow: 0 22px 48px rgba(23, 73, 45, 0.18);
   display: grid;
-  gap: 10px;
+  gap: 14px;
 }
 
 .landing-greeting-preview h2 {
@@ -373,14 +375,10 @@ main {
 }
 
 .landing-greeting-preview .landing-brand-logo {
-  max-width: min(218px, 56vw);
-  margin: -4px auto -10px;
+  max-width: min(198px, 52vw);
+  margin: -8px auto -16px;
   border-radius: 0;
   opacity: 1;
-}
-
-.landing-greeting-preview .landing-brand-logo + h2 {
-  display: none;
 }
 
 .landing-greeting-preview p {
@@ -391,14 +389,15 @@ main {
 }
 
 .landing-ghost-button {
-  width: 100%;
+  width: min(270px, 100%);
   min-width: 0;
   min-height: 40px;
+  justify-self: center;
   padding: 0 16px;
-  border: 1px solid rgba(23, 73, 45, 0.24);
-  border-radius: 12px;
+  border: 1px solid rgba(23, 73, 45, 0.2);
+  border-radius: 999px;
   color: #1f5d3a;
-  background: rgba(255, 253, 248, 0.58);
+  background: rgba(255, 253, 248, 0.72);
   backdrop-filter: blur(6px);
   font-size: 14px;
   font-weight: 900;
@@ -5734,6 +5733,10 @@ body {
   padding: 18px 14px 112px !important;
 }
 
+.app-shell.route-home main {
+  padding-top: 12px !important;
+}
+
 .panel,
 .home-section,
 .event-card,
@@ -5956,22 +5959,22 @@ textarea::placeholder {
 /* Ritual home screen inspired by the new identity reference */
 .ritual-home-hero {
   display: grid;
-  gap: 14px;
+  gap: 6px;
   justify-items: center;
-  padding: 22px 18px 10px;
+  padding: 8px 18px 14px;
   text-align: center;
 }
 
 .ritual-home-logo {
   display: grid;
-  width: min(238px, 72vw);
-  min-height: 142px;
+  width: min(204px, 68vw);
+  min-height: 122px;
   place-items: center;
   padding: 0;
 }
 
 .ritual-home-brand-image {
-  max-width: 238px;
+  max-width: 204px;
   border-radius: 0;
 }
 
@@ -5985,18 +5988,18 @@ textarea::placeholder {
 }
 
 .ritual-home-hero p {
-  margin: 6px 0 0;
+  margin: 3px 0 0;
   color: var(--ritual-muted);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 800;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
 }
 
 .ritual-home-hero .ritual-eyebrow {
-  margin: 0 0 6px;
+  margin: 0;
   color: var(--ritual-ink);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 800;
   letter-spacing: 0;
   text-transform: none;
@@ -6088,9 +6091,11 @@ textarea::placeholder {
 .ritual-quote-card p {
   max-width: 270px;
   margin: 0;
+  color: #fffdf8 !important;
   font-size: 18px;
   line-height: 1.45;
   font-weight: 600;
+  text-shadow: 0 1px 2px rgba(23, 73, 45, 0.22);
 }
 
 .ritual-quote-card span {
