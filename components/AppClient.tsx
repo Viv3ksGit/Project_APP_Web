@@ -1513,7 +1513,8 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
                 aria-label={`Today goal ${dailyProgressPercent}% complete`}
                 style={{ ["--progress" as string]: `${dailyProgressPercent}%` } as CSSProperties}
               >
-                <LotusBrandIcon />
+                <strong>{dailyProgressPercent}%</strong>
+                <span>done</span>
               </div>
               <div className="ritual-stat-block right">
                 <span className="ritual-stat-label">Today&apos;s Goal</span>
