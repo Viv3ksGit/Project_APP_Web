@@ -56,8 +56,12 @@ const DEITY_PHOTOS: Record<string, string> = {
 const DEITY_PLAYER_HERO_PHOTOS: Partial<Record<string, string>> = {
   Shiva: "/deities/line/shiva-player-clean-v2.png",
 };
-const BRAND_LOGO_SRC = "/brand/my-shloka-ritual-logo-transparent.png";
 const BRAND_MARK_SRC = "/brand/my-shloka-ritual-mark.png";
+const LANDING_PREVIEW_SCREENS = [
+  "/onboarding/screen-1.png",
+  "/onboarding/screen-2.png",
+  "/onboarding/screen-3.png",
+] as const;
 const POPULAR_SLOKA_ORDER = [
   "hanuman-chalisa",
   "lingashtakam",
@@ -424,21 +428,6 @@ function SlokaTile({ sloka }: { sloka: SlokaSummary }) {
   }
 
   return <span className="tile">{sloka.category.slice(0, 2).toUpperCase()}</span>;
-}
-
-function RitualBrandLogo({ className = "", priority = false }: { className?: string; priority?: boolean }) {
-  return (
-    <Image
-      alt="My Shloka Ritual"
-      className={`ritual-brand-logo ${className}`}
-      height={1254}
-      priority={priority}
-      sizes="(max-width: 480px) 220px, 320px"
-      src={BRAND_LOGO_SRC}
-      unoptimized
-      width={1254}
-    />
-  );
 }
 
 function LotusBrandIcon(props: SVGProps<SVGSVGElement>) {
@@ -1372,8 +1361,25 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
             <div className="landing-stars" />
             <div className="landing-content">
               {!showStartPrompt && (
-                <article className="landing-greeting-preview">
-                  <RitualBrandLogo className="landing-brand-logo" priority />
+                <article className="landing-greeting-preview landing-onboarding-card">
+                  <h2>My Shloka Ritual - App UI</h2>
+                  <p>Screen by Screen</p>
+                  <div className="landing-onboarding-strip" aria-label="Preview screens">
+                    {LANDING_PREVIEW_SCREENS.map((screenPath, index) => (
+                      <div className="landing-onboarding-phone" key={screenPath}>
+                        <Image
+                          alt={`Onboarding preview ${index + 1}`}
+                          className="landing-onboarding-image"
+                          height={694}
+                          priority={index === 0}
+                          sizes="(max-width: 900px) 38vw, 210px"
+                          src={screenPath}
+                          unoptimized
+                          width={384}
+                        />
+                      </div>
+                    ))}
+                  </div>
                   <button
                     className="landing-ghost-button"
                     onClick={() => {
@@ -1503,9 +1509,7 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
           <section className="screen active">
             <section className="ritual-home-hero" aria-label="My Shloka Ritual home">
               <div>
-                <p className="ritual-eyebrow">{dayGreeting}</p>
-                <h1>My Shloka Ritual</h1>
-                <p>Daily chants for inner calm</p>
+                <p className="ritual-eyebrow">{`${dayGreeting}, Viv`}</p>
               </div>
             </section>
 

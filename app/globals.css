@@ -345,7 +345,7 @@ main {
   position: relative;
   z-index: 1;
   min-height: 100vh;
-  max-width: 680px;
+  max-width: 1120px;
   margin: 0 auto;
   padding: clamp(18px, 4vw, 32px);
   display: flex;
@@ -355,7 +355,7 @@ main {
 }
 
 .landing-greeting-preview {
-  width: min(360px, 90vw);
+  width: min(980px, 96vw);
   border: 1px solid rgba(255, 253, 248, 0.58);
   border-radius: 30px;
   background:
@@ -371,27 +371,23 @@ main {
 .landing-greeting-preview h2 {
   margin: 0;
   color: #1c2a22;
-  font-size: 28px;
-}
-
-.landing-greeting-preview .landing-brand-logo {
-  max-width: min(198px, 52vw);
-  margin: -8px auto -16px;
-  border-radius: 0;
-  opacity: 1;
+  font-size: clamp(28px, 3.2vw, 46px);
+  line-height: 1.06;
+  text-align: center;
 }
 
 .landing-greeting-preview p {
   margin: 0;
   color: #5d6f80;
-  font-size: 14px;
+  font-size: clamp(15px, 1.8vw, 21px);
+  font-weight: 600;
   text-align: center;
 }
 
 .landing-ghost-button {
-  width: min(270px, 100%);
+  width: min(320px, 100%);
   min-width: 0;
-  min-height: 40px;
+  min-height: 48px;
   justify-self: center;
   padding: 0 16px;
   border: 1px solid rgba(23, 73, 45, 0.2);
@@ -404,6 +400,51 @@ main {
   line-height: 1;
   text-align: center;
   box-shadow: 0 12px 28px rgba(23, 73, 45, 0.14);
+}
+
+.landing-onboarding-card {
+  gap: 16px;
+}
+
+.landing-onboarding-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  width: 100%;
+}
+
+.landing-onboarding-phone {
+  border: 1px solid rgba(217, 212, 199, 0.86);
+  border-radius: 18px;
+  background: rgba(255, 253, 248, 0.78);
+  padding: 8px;
+  box-shadow: 0 10px 24px rgba(23, 73, 45, 0.08);
+}
+
+.landing-onboarding-image {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 12px;
+}
+
+@media (max-width: 900px) {
+  .landing-greeting-preview {
+    width: min(700px, 95vw);
+  }
+
+  .landing-onboarding-strip {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    gap: 12px;
+    padding-bottom: 4px;
+  }
+
+  .landing-onboarding-phone {
+    flex: 0 0 min(240px, 68vw);
+    scroll-snap-align: center;
+  }
 }
 
 .landing-start-button {
@@ -5959,34 +6000,16 @@ textarea::placeholder {
 /* Ritual home screen inspired by the new identity reference */
 .ritual-home-hero {
   display: grid;
-  gap: 4px;
+  gap: 0;
   justify-items: center;
-  padding: 10px 18px 16px;
+  padding: 6px 18px 14px;
   text-align: center;
 }
 
-.ritual-home-hero h1 {
-  margin: 0;
-  color: var(--ritual-green-dark);
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(24px, 6.8vw, 34px);
-  font-weight: 600;
-  line-height: 1.08;
-}
-
-.ritual-home-hero p {
-  margin: 2px 0 0;
-  color: var(--ritual-muted);
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-}
-
 .ritual-home-hero .ritual-eyebrow {
-  margin: 0 0 2px;
+  margin: 0;
   color: var(--ritual-ink);
-  font-size: 14px;
+  font-size: 28px;
   font-weight: 900;
   letter-spacing: 0;
   text-transform: none;
