@@ -1,4 +1,4 @@
-export type LanguageView = "both" | "tamil" | "english";
+export type LanguageView = "tamil" | "english";
 
 export type SessionMode =
   | "Host controls each line"

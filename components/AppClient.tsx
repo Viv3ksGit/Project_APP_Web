@@ -15,7 +15,12 @@ type SearchSuggestion = {
   value: string;
   rank: number;
 };
-type ReaderLanguage = "both" | "tamil" | "english";
+type ReaderLanguage = "tamil" | "english";
+type SetupLanguageChoice = "tamil" | "english";
+type SetupViewMode = "tamil_only" | "tamil_english";
+type SetupRitualStyle = "calm" | "count" | "timed";
+type SetupScrollSpeed = "slow" | "medium" | "fast";
+type SetupReminderPreset = "morning" | "evening" | "custom" | "none";
 type TamilCalendarToday = {
   date: string;
   weekday: string;
@@ -34,6 +39,7 @@ const STORAGE_KEYS = {
   chantLists: "sloka_sabha_chant_lists_v1",
   reminders: "sloka_sabha_reminders_v1",
   readerPrefs: "sloka_sabha_reader_prefs_v1",
+  setupProfile: "sloka_sabha_setup_profile_v1",
 };
 const WEEK_DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"] as const;
 const DAILY_TARGET_OPTIONS = [11, 21, 51] as const;
@@ -98,6 +104,22 @@ type ReaderPrefs = {
   showMeaning: boolean;
 };
 
+type SetupProfile = {
+  name: string;
+  completed: boolean;
+  dailyGoal: number;
+  dailyMinutes: number;
+  language: SetupLanguageChoice;
+  viewMode: SetupViewMode;
+  ritualStyle: SetupRitualStyle;
+  autoScroll: boolean;
+  scrollSpeed: SetupScrollSpeed;
+  reminderPreset: SetupReminderPreset;
+  reminderTime: string;
+  reminderEnabled: boolean;
+  quoteEnabled: boolean;
+};
+
 type SlokaPracticeEntry = {
   scheduleTime: string;
   startedAt: string;
@@ -136,9 +158,24 @@ const DEFAULT_REMINDERS: ReminderSettings = {
   lastNotifiedDate: "",
 };
 const DEFAULT_READER_PREFS: ReaderPrefs = {
-  fontScale: 0.68,
-  language: "both",
+  fontScale: 0.62,
+  language: "tamil",
   showMeaning: true,
+};
+const DEFAULT_SETUP_PROFILE: SetupProfile = {
+  name: "Asha",
+  completed: false,
+  dailyGoal: 5,
+  dailyMinutes: 15,
+  language: "tamil",
+  viewMode: "tamil_english",
+  ritualStyle: "calm",
+  autoScroll: true,
+  scrollSpeed: "slow",
+  reminderPreset: "morning",
+  reminderTime: "07:00",
+  reminderEnabled: true,
+  quoteEnabled: true,
 };
 
 const DEFAULT_PRACTICE_ENTRY: SlokaPracticeEntry = {
@@ -256,11 +293,86 @@ function normalizeChantLists(value: ChantList[]): ChantList[] {
     }));
 }
 
-function formatElapsedTime(totalSeconds: number): string {
-  const safeSeconds = Math.max(0, Math.floor(totalSeconds));
-  const minutes = Math.floor(safeSeconds / 60);
-  const seconds = `${safeSeconds % 60}`.padStart(2, "0");
-  return `${minutes}:${seconds}`;
+function normalizeSetupProfile(value: SetupProfile): SetupProfile {
+  const name = value.name?.trim() || DEFAULT_SETUP_PROFILE.name;
+  const dailyGoal = Number.isFinite(value.dailyGoal) ? Math.min(108, Math.max(1, Math.round(value.dailyGoal))) : DEFAULT_SETUP_PROFILE.dailyGoal;
+  const dailyMinutes = Number.isFinite(value.dailyMinutes)
+    ? Math.min(180, Math.max(5, Math.round(value.dailyMinutes)))
+    : DEFAULT_SETUP_PROFILE.dailyMinutes;
+  const language = (["tamil", "english"] as const).includes(value.language)
+    ? value.language
+    : DEFAULT_SETUP_PROFILE.language;
+  const viewMode = (["tamil_only", "tamil_english"] as const).includes(value.viewMode)
+    ? value.viewMode
+    : DEFAULT_SETUP_PROFILE.viewMode;
+  const ritualStyle = (["calm", "count", "timed"] as const).includes(value.ritualStyle) ? value.ritualStyle : DEFAULT_SETUP_PROFILE.ritualStyle;
+  const scrollSpeed = (["slow", "medium", "fast"] as const).includes(value.scrollSpeed) ? value.scrollSpeed : DEFAULT_SETUP_PROFILE.scrollSpeed;
+  const reminderPreset = (["morning", "evening", "custom", "none"] as const).includes(value.reminderPreset)
+    ? value.reminderPreset
+    : DEFAULT_SETUP_PROFILE.reminderPreset;
+  const reminderTime = /^\d{2}:\d{2}$/.test(value.reminderTime) ? value.reminderTime : DEFAULT_SETUP_PROFILE.reminderTime;
+
+  return {
+    ...DEFAULT_SETUP_PROFILE,
+    ...value,
+    name,
+    dailyGoal,
+    dailyMinutes,
+    language,
+    viewMode,
+    ritualStyle,
+    scrollSpeed,
+    reminderPreset,
+    reminderTime,
+    autoScroll: Boolean(value.autoScroll),
+    reminderEnabled: Boolean(value.reminderEnabled),
+    quoteEnabled: Boolean(value.quoteEnabled),
+    completed: Boolean(value.completed),
+  };
+}
+
+function getReaderPrefsFromSetup(setup: SetupProfile): Pick<ReaderPrefs, "language" | "showMeaning"> {
+  if (setup.language === "english") {
+    return { language: "english", showMeaning: false };
+  }
+  if (setup.viewMode === "tamil_only") {
+    return { language: "tamil", showMeaning: false };
+  }
+  return { language: "tamil", showMeaning: true };
+}
+
+function getAutoScrollTiming(speed: SetupScrollSpeed, ritualStyle: SetupRitualStyle): { intervalMs: number; stepPx: number } {
+  const baseInterval = speed === "slow" ? 210 : speed === "medium" ? 150 : 120;
+  const baseStep = speed === "slow" ? 5 : speed === "medium" ? 8 : 11;
+
+  if (ritualStyle === "calm") {
+    return { intervalMs: baseInterval + 70, stepPx: Math.max(4, baseStep - 1) };
+  }
+  if (ritualStyle === "timed") {
+    return { intervalMs: Math.max(90, baseInterval - 35), stepPx: baseStep + 2 };
+  }
+  return { intervalMs: baseInterval, stepPx: baseStep };
+}
+
+function findVerticalScrollContainer(): Window | HTMLElement {
+  if (typeof window === "undefined" || typeof document === "undefined") return window;
+
+  const candidates: (Element | null)[] = [
+    document.querySelector(".screen.active.detail-screen.ref-player-screen"),
+    document.querySelector(".screen.active.detail-screen"),
+    document.querySelector("main"),
+    document.querySelector(".app-shell"),
+  ];
+
+  for (const candidate of candidates) {
+    if (!(candidate instanceof HTMLElement)) continue;
+    const style = window.getComputedStyle(candidate);
+    const allowsVerticalScroll = /(auto|scroll)/.test(style.overflowY);
+    const hasOverflowContent = candidate.scrollHeight > candidate.clientHeight + 6;
+    if (allowsVerticalScroll && hasOverflowContent) return candidate;
+  }
+
+  return window;
 }
 
 function hasTamilScript(text: string): boolean {
@@ -389,17 +501,25 @@ function ShlokaTextBlock({
 function ReaderControls({
   language,
   showMeaning,
+  autoScroll,
+  scrollSpeed,
   onDecreaseFont,
   onIncreaseFont,
   onSetLanguage,
   onToggleMeaning,
+  onToggleAutoScroll,
+  onSetScrollSpeed,
 }: {
   language: ReaderLanguage;
   showMeaning: boolean;
+  autoScroll: boolean;
+  scrollSpeed: SetupScrollSpeed;
   onDecreaseFont: () => void;
   onIncreaseFont: () => void;
   onSetLanguage: (language: ReaderLanguage) => void;
   onToggleMeaning: () => void;
+  onToggleAutoScroll: () => void;
+  onSetScrollSpeed: (speed: SetupScrollSpeed) => void;
 }) {
   return (
     <article className="ref-reader-controls-card" aria-label="Reader controls">
@@ -414,10 +534,21 @@ function ReaderControls({
         <button className={`ref-reader-chip ${language === "english" ? "active" : ""}`} onClick={() => onSetLanguage("english")} type="button">
           English
         </button>
-        <button className={`ref-reader-chip ${language === "both" ? "active" : ""}`} onClick={() => onSetLanguage("both")} type="button">
-          Both
-        </button>
         <button className={`ref-reader-chip meaning ${showMeaning ? "active" : ""}`} onClick={onToggleMeaning} type="button">Meaning</button>
+      </div>
+      <div className="ref-reader-controls-row secondary">
+        <button className={`ref-reader-chip ${autoScroll ? "active" : ""}`} onClick={onToggleAutoScroll} type="button">
+          {autoScroll ? "Auto On" : "Auto Off"}
+        </button>
+        <button className={`ref-reader-chip speed ${scrollSpeed === "slow" ? "active" : ""}`} onClick={() => onSetScrollSpeed("slow")} type="button">
+          Slow
+        </button>
+        <button className={`ref-reader-chip speed ${scrollSpeed === "medium" ? "active" : ""}`} onClick={() => onSetScrollSpeed("medium")} type="button">
+          Medium
+        </button>
+        <button className={`ref-reader-chip speed ${scrollSpeed === "fast" ? "active" : ""}`} onClick={() => onSetScrollSpeed("fast")} type="button">
+          Fast
+        </button>
       </div>
     </article>
   );
@@ -524,8 +655,8 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
   const [sessionDuration, setSessionDuration] = useState<number>(5);
   const [guidedStart, setGuidedStart] = useState<boolean>(false);
   const [showStartPrompt, setShowStartPrompt] = useState<boolean>(false);
-  const [startPromptQuery, setStartPromptQuery] = useState<string>("");
-  const [startPromptDuration, setStartPromptDuration] = useState<number | null>(10);
+  const [setupStep, setSetupStep] = useState<number>(0);
+  const [setupProfile, setSetupProfile] = useState<SetupProfile>(DEFAULT_SETUP_PROFILE);
   const [librarySearch, setLibrarySearch] = useState<string>("");
   const [favoritesSearch, setFavoritesSearch] = useState<string>("");
   const [libraryCategory, setLibraryCategory] = useState<string>("all");
@@ -549,14 +680,16 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
   const [readerFontScale, setReaderFontScale] = useState<number>(DEFAULT_READER_PREFS.fontScale);
   const [readerLanguage, setReaderLanguage] = useState<ReaderLanguage>(DEFAULT_READER_PREFS.language);
   const [showMeaning, setShowMeaning] = useState<boolean>(DEFAULT_READER_PREFS.showMeaning);
-  const [timeSpentTick, setTimeSpentTick] = useState<number>(0);
   const [landingSlideIndex, setLandingSlideIndex] = useState<number>(0);
+  const [showCompletionPopup, setShowCompletionPopup] = useState<boolean>(false);
+  const [completionPromptShown, setCompletionPromptShown] = useState<boolean>(false);
   const homeSearchInputRef = useRef<HTMLInputElement | null>(null);
-  const startSearchInputRef = useRef<HTMLInputElement | null>(null);
   const landingTouchStartX = useRef<number | null>(null);
 
   const setRoute = useCallback((nextRoute: Route) => {
     setIsSideMenuOpen(false);
+    setShowCompletionPopup(false);
+    if (nextRoute !== "detail") setCompletionPromptShown(false);
     setRouteState(nextRoute);
   }, []);
 
@@ -621,16 +754,6 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
   const selectedSlokaDoneToday = useMemo(() => {
     return selectedPractice.completedDates.includes(todayDateKey);
   }, [selectedPractice.completedDates, todayDateKey]);
-
-  const selectedLinePercent = useMemo(() => {
-    if (selectedSloka.lines.length === 0) return 0;
-    return Math.round(((selectedPractice.activeLineIndex + 1) / selectedSloka.lines.length) * 100);
-  }, [selectedPractice.activeLineIndex, selectedSloka.lines.length]);
-
-  const selectedSessionSeconds = useMemo(() => {
-    if (!selectedPractice.startedAt || selectedPractice.endedAt) return selectedPractice.timeSpentSeconds;
-    return selectedPractice.timeSpentSeconds + Math.max(0, timeSpentTick);
-  }, [selectedPractice.endedAt, selectedPractice.startedAt, selectedPractice.timeSpentSeconds, timeSpentTick]);
 
   const recentCalendarDays = useMemo(() => {
     return Array.from({ length: 14 }, (_, index) => {
@@ -713,29 +836,6 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
   );
 
   const homeSuggestions = useMemo(() => buildSearchSuggestions(homeSearch), [buildSearchSuggestions, homeSearch]);
-  const findMatchingSlokas = useCallback(
-    (queryValue: string): SlokaSummary[] => {
-      const query = queryValue.trim().toLowerCase();
-      if (!query) return [];
-      return slokaList
-        .map((sloka) => {
-          const title = sloka.title.toLowerCase();
-          const titleTamil = sloka.titleTamil.toLowerCase();
-          const category = sloka.category.toLowerCase();
-          if (title === query || titleTamil === query) return { sloka, rank: 0 };
-          if (title.startsWith(query) || titleTamil.startsWith(query)) return { sloka, rank: 1 };
-          if (title.includes(query) || titleTamil.includes(query)) return { sloka, rank: 2 };
-          if (category.includes(query)) return { sloka, rank: 3 };
-          return null;
-        })
-        .filter((entry): entry is { sloka: SlokaSummary; rank: number } => entry !== null)
-        .sort((left, right) => left.rank - right.rank || left.sloka.title.localeCompare(right.sloka.title))
-        .map((entry) => entry.sloka);
-    },
-    [slokaList],
-  );
-
-  const startPromptSuggestions = useMemo(() => findMatchingSlokas(startPromptQuery).slice(0, 8), [findMatchingSlokas, startPromptQuery]);
 
   const filteredSlokas = useMemo(() => {
     const query = librarySearch.trim().toLowerCase();
@@ -807,6 +907,16 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
     const safeTarget = Math.max(1, chantProgress.dailyTarget);
     return Math.min(100, Math.round((chantProgress.dailyCount / safeTarget) * 100));
   }, [chantProgress.dailyCount, chantProgress.dailyTarget]);
+  const dailyTimeTargetMinutes = useMemo(() => Math.max(5, setupProfile.dailyMinutes), [setupProfile.dailyMinutes]);
+  const dailyMinutesCompleted = useMemo(() => Math.max(0, chantProgress.dailyCount * sessionDuration), [chantProgress.dailyCount, sessionDuration]);
+  const dailyMinutesDisplay = useMemo(
+    () => Math.min(dailyTimeTargetMinutes, dailyMinutesCompleted),
+    [dailyMinutesCompleted, dailyTimeTargetMinutes],
+  );
+  const dailyTimeProgressPercent = useMemo(() => {
+    const safeTarget = Math.max(1, dailyTimeTargetMinutes);
+    return Math.min(100, Math.round((dailyMinutesDisplay / safeTarget) * 100));
+  }, [dailyMinutesDisplay, dailyTimeTargetMinutes]);
   const remainingDailyChants = useMemo(
     () => Math.max(0, chantProgress.dailyTarget - chantProgress.dailyCount),
     [chantProgress.dailyCount, chantProgress.dailyTarget],
@@ -823,6 +933,34 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
       })
       .filter((value): value is { id: string; title: string; count: number } => value !== null);
   }, [chantProgress.perSlokaCount, slokaList]);
+  const recentActivityItems = useMemo(() => {
+    const todayItems = Object.entries(slokaPractice)
+      .map(([slokaId, rawEntry]) => {
+        const entry = normalizePracticeEntry(rawEntry);
+        if (!entry.completedDates.includes(todayDateKey)) return null;
+        const sloka = slokaList.find((item) => item.id === slokaId);
+        if (!sloka) return null;
+        const ended = entry.endedAt ? new Date(entry.endedAt) : null;
+        const endedLabel = ended ? ended.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "Today";
+        return {
+          id: sloka.id,
+          title: sloka.title,
+          meta: `${endedLabel} • ${sloka.duration} • ${chantProgress.perSlokaCount[sloka.id] ?? 0} chants`,
+          endedAt: ended?.getTime() ?? 0,
+        };
+      })
+      .filter((value): value is { id: string; title: string; meta: string; endedAt: number } => value !== null)
+      .sort((left, right) => right.endedAt - left.endedAt);
+
+    if (todayItems.length > 0) return todayItems.slice(0, 4);
+
+    return topChantedSlokas.slice(0, 4).map((item) => ({
+      id: item.id,
+      title: item.title,
+      meta: `${item.count} chants • Continue today`,
+      endedAt: 0,
+    }));
+  }, [chantProgress.perSlokaCount, slokaList, slokaPractice, todayDateKey, topChantedSlokas]);
 
   const toggleFavorite = useCallback((slokaId: string) => {
     setFavorites((previous) => {
@@ -946,16 +1084,6 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
     [selectedSloka.lines.length, updateSelectedPractice],
   );
 
-  const setSelectedScheduleTime = useCallback(
-    (scheduleTime: string) => {
-      updateSelectedPractice((entry) => ({
-        ...entry,
-        scheduleTime,
-      }));
-    },
-    [updateSelectedPractice],
-  );
-
   const setSelectedLineHighlight = useCallback(
     (color: string) => {
       updateSelectedPractice((entry) => ({
@@ -1009,6 +1137,17 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
       const payload = (await response.json()) as { sloka?: Sloka };
       if (!payload.sloka) throw new Error("Sloka data missing.");
       await fadeOutAmbientDrone();
+      const startedAt = new Date().toISOString();
+      setShowCompletionPopup(false);
+      setCompletionPromptShown(false);
+      setSlokaPractice((previous) => ({
+        ...previous,
+        [payload.sloka!.id]: {
+          ...normalizePracticeEntry(previous[payload.sloka!.id]),
+          startedAt,
+          endedAt: "",
+        },
+      }));
       setSelectedSloka(payload.sloka);
       setDetailBackRoute(sourceRoute);
       setRoute("detail");
@@ -1017,18 +1156,7 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
     }
   }, [fadeOutAmbientDrone, setRoute]);
 
-  const startSlokaPractice = useCallback(() => {
-    const startedAt = new Date().toISOString();
-    setTimeSpentTick(0);
-    updateSelectedPractice((entry) => ({
-      ...entry,
-      startedAt,
-      endedAt: "",
-    }));
-    setLiveMessage(`Started ${selectedSloka.title}.`);
-  }, [selectedSloka.title, updateSelectedPractice]);
-
-  const finishSlokaPractice = useCallback(() => {
+  const markSelectedSlokaComplete = useCallback(() => {
     const endedAt = new Date();
     updateSelectedPractice((entry) => {
       const startedAt = entry.startedAt ? new Date(entry.startedAt).getTime() : endedAt.getTime();
@@ -1049,7 +1177,8 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
       const currentIndex = activeChantList.slokaIds.indexOf(selectedSloka.id);
       const nextSlokaId = currentIndex >= 0 ? activeChantList.slokaIds[currentIndex + 1] : "";
       if (nextSlokaId) {
-        setTimeSpentTick(0);
+        setShowCompletionPopup(false);
+        setCompletionPromptShown(false);
         setLiveMessage(`Finished ${selectedSloka.title}. Opening next sloka.`);
         void loadSlokaDetail(nextSlokaId, "sessions");
         return;
@@ -1067,19 +1196,11 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
         return;
       }
     }
+    setShowCompletionPopup(false);
+    setCompletionPromptShown(true);
     setLiveMessage(`Marked ${selectedSloka.title} complete.`);
+    setRoute("home");
   }, [activeChantList, loadSlokaDetail, logChantCount, selectedSloka.id, selectedSloka.lines.length, selectedSloka.title, setRoute, todayDateKey, updateSelectedPractice]);
-
-  const resetSlokaPractice = useCallback(() => {
-    setTimeSpentTick(0);
-    updateSelectedPractice((entry) => ({
-      ...entry,
-      startedAt: "",
-      endedAt: "",
-      activeLineIndex: 0,
-    }));
-    setLiveMessage(`Reset ${selectedSloka.title} reading progress.`);
-  }, [selectedSloka.title, updateSelectedPractice]);
 
   const startChantList = useCallback(
     async (listId: string) => {
@@ -1095,26 +1216,84 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
     [chantLists, loadSlokaDetail],
   );
 
-  const continueFromStartPrompt = useCallback(async () => {
-    const query = startPromptQuery.trim();
-    setHomeDurationMax(startPromptDuration);
-
-    if (query.length > 0) {
-      const matches = findMatchingSlokas(query);
-      if (matches.length > 0) {
-        setHomeSearch(query);
-        setGuidedStart(false);
-        setShowStartPrompt(false);
-        await loadSlokaDetail(matches[0].id, "home");
+  const setupProgressStep = Math.max(1, Math.min(4, setupStep));
+  const openSetupFlow = useCallback(() => {
+    setSetupStep(0);
+    setShowStartPrompt(true);
+  }, []);
+  const startSetupWizard = useCallback(() => {
+    setSetupStep(1);
+  }, []);
+  const closeSetupFlow = useCallback(() => {
+    setSetupStep(0);
+    setShowStartPrompt(false);
+  }, []);
+  const goToNextSetupStep = useCallback(() => {
+    setSetupStep((previous) => Math.min(4, previous + 1));
+  }, []);
+  const goToPreviousSetupStep = useCallback(() => {
+    setSetupStep((previous) => Math.max(0, previous - 1));
+  }, []);
+  const updateSetupProfile = useCallback((partial: Partial<SetupProfile>) => {
+    setSetupProfile((previous) => ({ ...previous, ...partial }));
+  }, []);
+  const applyLanguagePreferences = useCallback(
+    (partial: Partial<Pick<SetupProfile, "language" | "viewMode">>) => {
+      const normalized = normalizeSetupProfile({ ...setupProfile, ...partial });
+      const nextReaderPrefs = getReaderPrefsFromSetup(normalized);
+      setSetupProfile(normalized);
+      setReaderLanguage(nextReaderPrefs.language);
+      setShowMeaning(nextReaderPrefs.showMeaning);
+    },
+    [setupProfile],
+  );
+  const applyRitualStyle = useCallback(
+    (style: SetupRitualStyle) => {
+      if (style === "calm") {
+        updateSetupProfile({ ritualStyle: style, autoScroll: true, scrollSpeed: "slow" });
         return;
       }
-    }
+      if (style === "count") {
+        updateSetupProfile({ ritualStyle: style, autoScroll: false, scrollSpeed: "medium" });
+        return;
+      }
+      updateSetupProfile({ ritualStyle: style, autoScroll: true, scrollSpeed: "fast" });
+    },
+    [updateSetupProfile],
+  );
+  const completeSetupFlow = useCallback(() => {
+    const normalized = normalizeSetupProfile({ ...setupProfile, completed: true });
+    const nextReaderPrefs = getReaderPrefsFromSetup(normalized);
+    const reminderTime =
+      normalized.reminderPreset === "morning"
+        ? "07:00"
+        : normalized.reminderPreset === "evening"
+          ? "20:00"
+          : normalized.reminderTime;
+    const reminderEnabled = normalized.reminderEnabled && normalized.reminderPreset !== "none";
+    const roundedDuration = normalized.dailyMinutes <= 7 ? 5 : normalized.dailyMinutes <= 12 ? 10 : 15;
 
-    setHomeSearch(query);
+    setSetupProfile(normalized);
+    setChantProgress((previous) => ({
+      ...previous,
+      dailyTarget: normalized.dailyGoal,
+    }));
+    setSessionDuration(roundedDuration);
+    setHomeDurationMax(normalized.ritualStyle === "timed" ? roundedDuration : null);
+    setReaderLanguage(nextReaderPrefs.language);
+    setShowMeaning(nextReaderPrefs.showMeaning);
+    setReminders((previous) => ({
+      ...previous,
+      enabled: reminderEnabled,
+      time: reminderTime,
+      days: reminderEnabled ? Array.from(WEEK_DAYS) : previous.days,
+    }));
     setGuidedStart(true);
     setShowStartPrompt(false);
+    setSetupStep(0);
     setRoute("home");
-  }, [findMatchingSlokas, loadSlokaDetail, setRoute, startPromptDuration, startPromptQuery]);
+    setLiveMessage(`Setup complete. Welcome, ${normalized.name}.`);
+  }, [setRoute, setupProfile]);
 
   const decreaseReaderFontScale = useCallback(() => {
     setReaderFontScale((value) => Math.max(0.5, Number((value - 0.05).toFixed(2))));
@@ -1146,21 +1325,48 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
       window.localStorage.getItem(STORAGE_KEYS.readerPrefs),
       DEFAULT_READER_PREFS,
     );
+    const persistedSetup = safeParse<SetupProfile>(
+      window.localStorage.getItem(STORAGE_KEYS.setupProfile),
+      DEFAULT_SETUP_PROFILE,
+    );
+    const normalizedSetup = normalizeSetupProfile(persistedSetup);
+    const hydratedProgress = normalizeProgressForToday(persistedProgress, todayDateKey);
+    const setupReaderPrefs = getReaderPrefsFromSetup(normalizedSetup);
+    const initialReaderLanguage: ReaderLanguage = normalizedSetup.completed
+      ? setupReaderPrefs.language
+      : persistedReaderPrefs.language === "tamil" || persistedReaderPrefs.language === "english"
+        ? persistedReaderPrefs.language
+        : "tamil";
+    const initialShowMeaning = normalizedSetup.completed
+      ? setupReaderPrefs.showMeaning
+      : typeof persistedReaderPrefs.showMeaning === "boolean"
+        ? persistedReaderPrefs.showMeaning
+        : true;
+    const initialDuration =
+      normalizedSetup.completed
+        ? normalizedSetup.dailyMinutes <= 7
+          ? 5
+          : normalizedSetup.dailyMinutes <= 12
+            ? 10
+            : 15
+        : 5;
 
     setFavorites(new Set(persistedFavorites));
-    setChantProgress(normalizeProgressForToday(persistedProgress, todayDateKey));
+    setChantProgress({
+      ...hydratedProgress,
+      dailyTarget: normalizedSetup.completed ? normalizedSetup.dailyGoal : hydratedProgress.dailyTarget,
+    });
     setSlokaPractice(normalizePracticeState(persistedPractice));
     setChantLists(normalizeChantLists(persistedChantLists));
     setReminders(normalizeReminderSettings(persistedReminders));
+    setSetupProfile(normalizedSetup);
+    setSessionDuration(initialDuration);
+    setHomeDurationMax(normalizedSetup.completed ? (normalizedSetup.ritualStyle === "timed" ? initialDuration : null) : 10);
     setReaderFontScale(
       Math.min(0.9, Math.max(0.5, Number.isFinite(persistedReaderPrefs.fontScale) ? persistedReaderPrefs.fontScale : 0.68)),
     );
-    setReaderLanguage(
-      persistedReaderPrefs.language === "tamil" || persistedReaderPrefs.language === "english"
-        ? persistedReaderPrefs.language
-        : "both",
-    );
-    setShowMeaning(typeof persistedReaderPrefs.showMeaning === "boolean" ? persistedReaderPrefs.showMeaning : true);
+    setReaderLanguage(initialReaderLanguage);
+    setShowMeaning(initialShowMeaning);
     setTodayDay(WEEK_DAYS[new Date().getDay()]);
     setIsHydrated(true);
   }, []);
@@ -1255,6 +1461,11 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
   }, [isHydrated, readerFontScale, readerLanguage, showMeaning]);
 
   useEffect(() => {
+    if (!isHydrated || typeof window === "undefined") return;
+    window.localStorage.setItem(STORAGE_KEYS.setupProfile, JSON.stringify(setupProfile));
+  }, [isHydrated, setupProfile]);
+
+  useEffect(() => {
     if (!isHydrated || !reminders.enabled) return;
     if (typeof window === "undefined" || typeof Notification === "undefined") return;
 
@@ -1323,13 +1534,82 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
     return () => window.clearTimeout(timer);
   }, [route]);
 
+  const autoScrollTiming = useMemo(
+    () => getAutoScrollTiming(setupProfile.scrollSpeed, setupProfile.ritualStyle),
+    [setupProfile.ritualStyle, setupProfile.scrollSpeed],
+  );
+
   useEffect(() => {
-    if (route !== "detail" || !selectedPractice.startedAt || selectedPractice.endedAt) return;
+    if (route !== "detail" || !setupProfile.autoScroll || showCompletionPopup) return;
+    if (typeof window === "undefined" || typeof document === "undefined") return;
+
+    const { intervalMs, stepPx } = autoScrollTiming;
+    const scrollTarget = findVerticalScrollContainer();
     const timer = window.setInterval(() => {
-      setTimeSpentTick((value) => value + 1);
-    }, 1000);
+      if (!(scrollTarget instanceof HTMLElement)) {
+        const root = document.scrollingElement || document.documentElement;
+        const maxScrollTop = Math.max(0, root.scrollHeight - window.innerHeight);
+        if (root.scrollTop >= maxScrollTop - 4) return;
+        root.scrollTop = Math.min(maxScrollTop, root.scrollTop + stepPx);
+        return;
+      }
+
+      const maxScrollTop = Math.max(0, scrollTarget.scrollHeight - scrollTarget.clientHeight);
+      if (scrollTarget.scrollTop >= maxScrollTop - 4) return;
+      const previousTop = scrollTarget.scrollTop;
+      scrollTarget.scrollTop = Math.min(maxScrollTop, scrollTarget.scrollTop + stepPx);
+
+      // Fallback for layouts where the visual scroll is still on document.
+      if (scrollTarget.scrollTop === previousTop) {
+        const root = document.scrollingElement || document.documentElement;
+        const rootMax = Math.max(0, root.scrollHeight - window.innerHeight);
+        if (root.scrollTop < rootMax - 4) {
+          root.scrollTop = Math.min(rootMax, root.scrollTop + stepPx);
+        }
+      }
+    }, intervalMs);
+
     return () => window.clearInterval(timer);
-  }, [route, selectedPractice.endedAt, selectedPractice.startedAt]);
+  }, [autoScrollTiming, route, setupProfile.autoScroll, showCompletionPopup]);
+
+  const maybeOpenCompletionPopup = useCallback(() => {
+    if (route !== "detail" || selectedSlokaDoneToday || showCompletionPopup || completionPromptShown) return;
+    if (typeof window === "undefined" || typeof document === "undefined") return;
+    const scrollTarget = findVerticalScrollContainer();
+    const hasReachedEnd = !(scrollTarget instanceof HTMLElement)
+      ? (() => {
+          const root = document.scrollingElement || document.documentElement;
+          return root.scrollTop + window.innerHeight >= root.scrollHeight - 24;
+        })()
+      : scrollTarget.scrollTop + scrollTarget.clientHeight >= scrollTarget.scrollHeight - 24;
+    if (!hasReachedEnd) return;
+    setCompletionPromptShown(true);
+    setShowCompletionPopup(true);
+  }, [completionPromptShown, route, selectedSlokaDoneToday, showCompletionPopup]);
+
+  useEffect(() => {
+    if (route !== "detail" || selectedSlokaDoneToday || showCompletionPopup || completionPromptShown) return;
+    const scrollTarget = findVerticalScrollContainer();
+    const onScroll = () => {
+      maybeOpenCompletionPopup();
+    };
+    if (scrollTarget instanceof HTMLElement) {
+      scrollTarget.addEventListener("scroll", onScroll, { passive: true });
+    } else {
+      window.addEventListener("scroll", onScroll, { passive: true });
+    }
+    window.addEventListener("resize", onScroll);
+    const timer = window.setTimeout(onScroll, 180);
+    return () => {
+      window.clearTimeout(timer);
+      if (scrollTarget instanceof HTMLElement) {
+        scrollTarget.removeEventListener("scroll", onScroll);
+      } else {
+        window.removeEventListener("scroll", onScroll);
+      }
+      window.removeEventListener("resize", onScroll);
+    };
+  }, [completionPromptShown, maybeOpenCompletionPopup, route, selectedSlokaDoneToday, showCompletionPopup]);
 
   const readerScaleStyle = useMemo(
     () =>
@@ -1388,9 +1668,16 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
 
         {route === "landing" && (
           <section className="landing-screen active">
-            <video autoPlay className="landing-video" loop muted playsInline preload="metadata">
-              <source src="/media/sloka-hero.mp4" type="video/mp4" />
-            </video>
+            <Image
+              alt=""
+              aria-hidden="true"
+              className="landing-splash-image"
+              fill
+              priority
+              sizes="100vw"
+              src="/media/entry-splash-bg.png"
+              unoptimized
+            />
             <div className="landing-overlay" />
             <div className="landing-colorwash" />
             <div className="landing-stars" />
@@ -1461,9 +1748,7 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
                               {step.id === "nourish" ? (
                                 <button
                                   className="landing-ghost-button"
-                                  onClick={() => {
-                                    setShowStartPrompt(true);
-                                  }}
+                                  onClick={openSetupFlow}
                                   type="button"
                                 >
                                   Enter Slokas
@@ -1483,111 +1768,329 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
             {showStartPrompt && (
               <div
                 className="start-modal-backdrop"
-                onClick={() => setShowStartPrompt(false)}
+                onClick={closeSetupFlow}
                 onKeyDown={(event) => {
-                  if (event.key === "Escape") setShowStartPrompt(false);
+                  if (event.key === "Escape") closeSetupFlow();
                 }}
                 role="button"
                 tabIndex={0}
               >
-                <form
+                <section
                   className="start-modal"
                   onClick={(event) => event.stopPropagation()}
-                  onSubmit={(event) => {
-                    event.preventDefault();
-                    void continueFromStartPrompt();
-                  }}
                 >
-                  <h3>What slokas are you looking for?</h3>
-                  <p>Search by name, deity, or language and pick a duration.</p>
-                  <label className="field-label light" htmlFor="start-prompt-query">
-                    Sloka Search
-                  </label>
-                  <input
-                    autoComplete="off"
-                    className="start-modal-input"
-                    id="start-prompt-query"
-                    onChange={(event) => setStartPromptQuery(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === "Tab" && startPromptSuggestions[0]) {
-                        event.preventDefault();
-                        setStartPromptQuery(startPromptSuggestions[0].title);
-                      }
-                    }}
-                    placeholder="Hanuman Chalisa, Shiva, Durga..."
-                    ref={startSearchInputRef}
-                    value={startPromptQuery}
-                  />
-                  {startPromptSuggestions.length > 0 && (
-                    <div className="search-suggestions" role="listbox">
-                      {startPromptSuggestions.map((suggestion) => (
-                        <button
-                          className="search-suggestion"
-                          key={`start-suggestion-${suggestion.id}`}
-                          onClick={() => {
-                            setStartPromptQuery(suggestion.title);
-                            startSearchInputRef.current?.focus();
-                          }}
-                          type="button"
-                        >
-                          {suggestion.title}
+                  {setupStep === 0 ? (
+                    <div className="setup-first-screen">
+                      <header className="setup-first-header">
+                        <span className="setup-first-om">ॐ</span>
+                        <h3>{`${dayGreeting}, ${setupProfile.name || "Asha"}`}</h3>
+                        <p>Begin your spiritual journey today</p>
+                        <Image
+                          alt=""
+                          aria-hidden="true"
+                          className="setup-divider"
+                          height={22}
+                          src="/decor/section-divider-lotus.svg"
+                          unoptimized
+                          width={128}
+                        />
+                      </header>
+                      <div className="setup-first-cards">
+                        <article className="setup-first-card">
+                          <div className="setup-first-card-top">
+                            <Image
+                              alt=""
+                              aria-hidden="true"
+                              className="setup-first-card-mark"
+                              height={760}
+                              src={BRAND_MARK_SRC}
+                              unoptimized
+                              width={760}
+                            />
+                            <div>
+                              <h4>Set Up Ritual</h4>
+                              <p>Personalize your chanting journey. Set goals, choose duration, and create your daily ritual.</p>
+                            </div>
+                          </div>
+                          <button className="landing-start-button" onClick={startSetupWizard} type="button">
+                            Set Up My Ritual
+                          </button>
+                        </article>
+                        <article className="setup-first-card setup-first-card-explore">
+                          <div className="setup-first-card-top">
+                            <Image
+                              alt=""
+                              aria-hidden="true"
+                              className="setup-first-card-mark"
+                              height={240}
+                              src="/decor/lotus-icon.svg"
+                              unoptimized
+                              width={240}
+                            />
+                            <div>
+                              <h4>Explore Library</h4>
+                              <p>Browse the collection of slokas by deity, purpose, category, and mood.</p>
+                            </div>
+                          </div>
+                          <button
+                            className="secondary-button setup-explore-button"
+                            onClick={() => {
+                              setGuidedStart(false);
+                              setShowStartPrompt(false);
+                              setRoute("home");
+                            }}
+                            type="button"
+                          >
+                            Explore Library
+                          </button>
+                        </article>
+                      </div>
+                      <p className="setup-first-note">You can set up a ritual anytime from the Profile section.</p>
+                    </div>
+                  ) : (
+                    <div className="setup-wizard">
+                      <header className="setup-wizard-header">
+                        <button className="icon-button setup-back-button" onClick={goToPreviousSetupStep} type="button">
+                          <BackGlyph />
                         </button>
-                      ))}
+                        <p className="setup-wizard-step">{`Step ${setupProgressStep} of 4`}</p>
+                        <div className="setup-wizard-progress" aria-label={`Step ${setupProgressStep} of 4`}>
+                          {Array.from({ length: 4 }, (_, index) => (
+                            <span className={index < setupProgressStep ? "active" : ""} key={`setup-step-${index + 1}`} />
+                          ))}
+                        </div>
+                        <h3>
+                          {setupStep === 1
+                            ? "Welcome! Let's get started."
+                            : setupStep === 2
+                              ? "Choose your language"
+                              : setupStep === 3
+                                ? "Set your ritual style"
+                                : "Set your reminders"}
+                        </h3>
+                        <p>
+                          {setupStep === 1
+                            ? "A small step today, a lifetime of calm."
+                            : setupStep === 2
+                              ? "We'll show slokas and meanings in your preferred language."
+                              : setupStep === 3
+                                ? "Choose how you want to chant and build your daily practice."
+                                : "We'll gently remind you so you never miss your daily ritual."}
+                        </p>
+                      </header>
+
+                      {setupStep === 1 && (
+                        <div className="setup-wizard-body">
+                          <article className="setup-panel">
+                            <label className="field-label light" htmlFor="setup-name">
+                              What should we call you?
+                            </label>
+                            <input
+                              autoComplete="name"
+                              className="start-modal-input"
+                              id="setup-name"
+                              onChange={(event) => updateSetupProfile({ name: event.target.value })}
+                              placeholder="Enter your name"
+                              value={setupProfile.name}
+                            />
+                          </article>
+                          <article className="setup-panel">
+                            <h4>Set your daily goals</h4>
+                            <div className="setup-counter-row">
+                              <span>Daily chant count target</span>
+                              <div className="setup-counter">
+                                <button onClick={() => updateSetupProfile({ dailyGoal: Math.max(1, setupProfile.dailyGoal - 1) })} type="button">-</button>
+                                <strong>{setupProfile.dailyGoal}</strong>
+                                <button onClick={() => updateSetupProfile({ dailyGoal: Math.min(108, setupProfile.dailyGoal + 1) })} type="button">+</button>
+                              </div>
+                            </div>
+                            <div className="setup-counter-row">
+                              <span>Daily time target</span>
+                              <div className="setup-counter">
+                                <button onClick={() => updateSetupProfile({ dailyMinutes: Math.max(5, setupProfile.dailyMinutes - 5) })} type="button">-</button>
+                                <strong>{setupProfile.dailyMinutes}</strong>
+                                <button onClick={() => updateSetupProfile({ dailyMinutes: Math.min(180, setupProfile.dailyMinutes + 5) })} type="button">+</button>
+                              </div>
+                            </div>
+                          </article>
+                        </div>
+                      )}
+
+                      {setupStep === 2 && (
+                        <div className="setup-wizard-body">
+                          <article className="setup-panel">
+                            <h4>Select your preferred language</h4>
+                            <div className="setup-choice-list">
+                              {[
+                                { id: "tamil", label: "\u0ba4\u0bae\u0bbf\u0bb4\u0bcd", sub: "Tamil" },
+                                { id: "english", label: "English", sub: "English" },
+                              ].map((option) => (
+                                <button
+                                  className={`setup-option ${setupProfile.language === option.id ? "active" : ""}`}
+                                  key={`setup-language-${option.id}`}
+                                  onClick={() => applyLanguagePreferences({ language: option.id as SetupLanguageChoice })}
+                                  type="button"
+                                >
+                                  <strong>{option.label}</strong>
+                                  <small>{option.sub}</small>
+                                </button>
+                              ))}
+                            </div>
+                          </article>
+                          <article className="setup-panel">
+                            <h4>How would you like to view slokas?</h4>
+                            <div className="setup-view-options">
+                              <button
+                                className={`setup-view-chip ${setupProfile.viewMode === "tamil_only" ? "active" : ""}`}
+                                onClick={() => applyLanguagePreferences({ viewMode: "tamil_only" })}
+                                type="button"
+                              >
+                                <strong>Tamil only</strong>
+                                <small>Only Tamil script</small>
+                              </button>
+                              <button
+                                className={`setup-view-chip ${setupProfile.viewMode === "tamil_english" ? "active" : ""}`}
+                                onClick={() => applyLanguagePreferences({ viewMode: "tamil_english" })}
+                                type="button"
+                              >
+                                <strong>Tamil + Meaning</strong>
+                                <small>Tamil with English meaning</small>
+                              </button>
+                            </div>
+                          </article>
+                        </div>
+                      )}
+
+                      {setupStep === 3 && (
+                        <div className="setup-wizard-body">
+                          <article className="setup-panel">
+                            <h4>Choose your chanting style</h4>
+                            <div className="setup-choice-list">
+                              {[
+                                { id: "calm", label: "Calm Mode", desc: "Slow, mindful and immersive." },
+                                { id: "count", label: "Count Mode", desc: "Focus on repetitions." },
+                                { id: "timed", label: "Timed Mode", desc: "Focus on minutes." },
+                              ].map((option) => (
+                                <button
+                                  className={`setup-option ${setupProfile.ritualStyle === option.id ? "active" : ""}`}
+                                  key={`setup-style-${option.id}`}
+                                  onClick={() => applyRitualStyle(option.id as SetupRitualStyle)}
+                                  type="button"
+                                >
+                                  <strong>{option.label}</strong>
+                                  <small>{option.desc}</small>
+                                </button>
+                              ))}
+                            </div>
+                          </article>
+                          <article className="setup-panel">
+                            <div className="setup-toggle-row">
+                              <span>Auto-scroll by default</span>
+                              <button
+                                className={`switch-button ${setupProfile.autoScroll ? "active" : ""}`}
+                                onClick={() => updateSetupProfile({ autoScroll: !setupProfile.autoScroll })}
+                                type="button"
+                              >
+                                {setupProfile.autoScroll ? "On" : "Off"}
+                              </button>
+                            </div>
+                            <div className="setup-chip-options">
+                              <button
+                                className={`start-chip ${setupProfile.scrollSpeed === "slow" ? "active" : ""}`}
+                                onClick={() => updateSetupProfile({ scrollSpeed: "slow" })}
+                                type="button"
+                              >
+                                Slow
+                              </button>
+                              <button
+                                className={`start-chip ${setupProfile.scrollSpeed === "medium" ? "active" : ""}`}
+                                onClick={() => updateSetupProfile({ scrollSpeed: "medium" })}
+                                type="button"
+                              >
+                                Medium
+                              </button>
+                              <button
+                                className={`start-chip ${setupProfile.scrollSpeed === "fast" ? "active" : ""}`}
+                                onClick={() => updateSetupProfile({ scrollSpeed: "fast" })}
+                                type="button"
+                              >
+                                Fast
+                              </button>
+                            </div>
+                          </article>
+                        </div>
+                      )}
+
+                      {setupStep === 4 && (
+                        <div className="setup-wizard-body">
+                          <article className="setup-panel">
+                            <h4>When should we remind you?</h4>
+                            <div className="setup-choice-list">
+                              {[
+                                { id: "morning", label: "Morning", time: "07:00 AM" },
+                                { id: "evening", label: "Evening", time: "08:00 PM" },
+                                { id: "custom", label: "Custom time", time: "Set custom time" },
+                                { id: "none", label: "I'll do it without reminders", time: "I prefer to practice on my own" },
+                              ].map((option) => (
+                                <button
+                                  className={`setup-option ${setupProfile.reminderPreset === option.id ? "active" : ""}`}
+                                  key={`setup-reminder-${option.id}`}
+                                  onClick={() => updateSetupProfile({ reminderPreset: option.id as SetupReminderPreset })}
+                                  type="button"
+                                >
+                                  <strong>{option.label}</strong>
+                                  <small>{option.time}</small>
+                                </button>
+                              ))}
+                            </div>
+                            {setupProfile.reminderPreset === "custom" && (
+                              <input
+                                className="start-modal-input"
+                                onChange={(event) => updateSetupProfile({ reminderTime: event.target.value })}
+                                type="time"
+                                value={setupProfile.reminderTime}
+                              />
+                            )}
+                          </article>
+                          <article className="setup-panel">
+                            <div className="setup-toggle-row">
+                              <span>Daily reminder notification</span>
+                              <button
+                                className={`switch-button ${setupProfile.reminderEnabled ? "active" : ""}`}
+                                onClick={() => updateSetupProfile({ reminderEnabled: !setupProfile.reminderEnabled })}
+                                type="button"
+                              >
+                                {setupProfile.reminderEnabled ? "On" : "Off"}
+                              </button>
+                            </div>
+                            <div className="setup-toggle-row">
+                              <span>Motivational quote</span>
+                              <button
+                                className={`switch-button ${setupProfile.quoteEnabled ? "active" : ""}`}
+                                onClick={() => updateSetupProfile({ quoteEnabled: !setupProfile.quoteEnabled })}
+                                type="button"
+                              >
+                                {setupProfile.quoteEnabled ? "On" : "Off"}
+                              </button>
+                            </div>
+                          </article>
+                        </div>
+                      )}
+
+                      <div className="start-modal-actions">
+                        {setupStep < 4 ? (
+                          <button className="landing-start-button" onClick={goToNextSetupStep} type="button">
+                            Continue
+                          </button>
+                        ) : (
+                          <button className="landing-start-button" onClick={completeSetupFlow} type="button">
+                            Complete Setup
+                          </button>
+                        )}
+                      </div>
                     </div>
                   )}
-                  <label className="field-label light">Duration</label>
-                  <div className="start-chip-row">
-                    <button
-                      className={`start-chip ${startPromptDuration === 5 ? "active" : ""}`}
-                      onClick={() => setStartPromptDuration(5)}
-                      type="button"
-                    >
-                      5 min
-                    </button>
-                    <button
-                      className={`start-chip ${startPromptDuration === 10 ? "active" : ""}`}
-                      onClick={() => setStartPromptDuration(10)}
-                      type="button"
-                    >
-                      10 min
-                    </button>
-                    <button
-                      className={`start-chip ${startPromptDuration === 15 ? "active" : ""}`}
-                      onClick={() => setStartPromptDuration(15)}
-                      type="button"
-                    >
-                      15 min
-                    </button>
-                    <button
-                      className={`start-chip ${startPromptDuration === null ? "active" : ""}`}
-                      onClick={() => setStartPromptDuration(null)}
-                      type="button"
-                    >
-                      Any
-                    </button>
-                  </div>
-                  <div className="start-modal-actions start-modal-actions-three">
-                    <button className="secondary-button" onClick={() => setShowStartPrompt(false)} type="button">
-                      Cancel
-                    </button>
-                    <button
-                      className="secondary-button"
-                      onClick={() => {
-                        setStartPromptQuery("");
-                        setShowStartPrompt(false);
-                        setGuidedStart(false);
-                        setHomeSearch("");
-                        setRoute("home");
-                      }}
-                      type="button"
-                    >
-                      Home
-                    </button>
-                    <button className="landing-start-button" type="submit">
-                      Continue
-                    </button>
-                  </div>
-                </form>
+                </section>
               </div>
             )}
           </section>
@@ -1597,45 +2100,126 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
           <section className="screen active">
             <section className="ritual-home-hero" aria-label="My Shloka Ritual home">
               <div>
-                <p className="ritual-eyebrow">{`${dayGreeting}, Viv`}</p>
+                <p className="ritual-eyebrow">{`${dayGreeting}, ${setupProfile.name || "Asha"}`}</p>
               </div>
             </section>
 
-            <article className="event-card ritual-dashboard-card">
-              <div className="ritual-stat-block">
-                <span className="ritual-stat-label">Daily Streak</span>
-                <strong>{chantProgress.streakDays}</strong>
-                <small>days</small>
-              </div>
-              <div
-                className="ritual-goal-ring"
-                aria-label={`Today goal ${dailyProgressPercent}% complete`}
-                style={{ ["--progress" as string]: `${dailyProgressPercent}%` } as CSSProperties}
-              >
-                <Image
-                  alt=""
-                  aria-hidden="true"
-                  className="ritual-goal-mark"
-                  height={610}
-                  src={BRAND_MARK_SRC}
-                  unoptimized
-                  width={760}
-                />
-              </div>
-              <div className="ritual-stat-block right">
-                <span className="ritual-stat-label">Today&apos;s Goal</span>
-                <strong>{chantProgress.dailyTarget}</strong>
-                <small>chants</small>
-                <button className="ritual-mini-pill" onClick={() => setRoute("sessions")} type="button">
-                  Edit Goal
-                </button>
-              </div>
-            </article>
+            {setupProfile.completed ? (
+              <>
+                <article className="event-card ritual-progress-board">
+                  <div className="section-heading compact">
+                    <h2>Today&apos;s Progress</h2>
+                    <button className="secondary-button ritual-mini-inline" onClick={() => setRoute("sessions")} type="button">
+                      View All
+                    </button>
+                  </div>
+                  <p className="mini-muted">Your progress toward today&apos;s goals</p>
+                  <div className="ritual-progress-rings">
+                    <div className="ritual-progress-item">
+                      <span className="ritual-progress-label">Chant Count</span>
+                      <div
+                        className="ritual-goal-ring ritual-goal-ring-large"
+                        aria-label={`Daily chant progress ${dailyProgressPercent}%`}
+                        style={{ ["--progress" as string]: `${dailyProgressPercent}%` } as CSSProperties}
+                      >
+                        <strong>{chantProgress.dailyCount}</strong>
+                        <small>{`/ ${chantProgress.dailyTarget}`}</small>
+                      </div>
+                      <p>{`Target: ${chantProgress.dailyTarget} chants`}</p>
+                    </div>
+                    <div className="ritual-progress-item">
+                      <span className="ritual-progress-label amber">Chant Time</span>
+                      <div
+                        className="ritual-time-ring ritual-goal-ring-large"
+                        aria-label={`Daily time progress ${dailyTimeProgressPercent}%`}
+                        style={{ ["--progress" as string]: `${dailyTimeProgressPercent}%` } as CSSProperties}
+                      >
+                        <strong>{dailyMinutesDisplay}</strong>
+                        <small>{`/ ${dailyTimeTargetMinutes}`}</small>
+                      </div>
+                      <p>{`Target: ${dailyTimeTargetMinutes} min`}</p>
+                    </div>
+                  </div>
+                  <div className="ritual-progress-footer">
+                    <div>
+                      <strong>{chantProgress.dailyCount}</strong>
+                      <small>Total Chants</small>
+                    </div>
+                    <div>
+                      <strong>{`${dailyMinutesDisplay} min`}</strong>
+                      <small>Total Time</small>
+                    </div>
+                    <div>
+                      <strong>{chantProgress.streakDays}</strong>
+                      <small>Day Streak</small>
+                    </div>
+                  </div>
+                </article>
 
-            <article className="ritual-quote-card">
-              <p>Let the divine words sustain your mind and soothe your soul.</p>
-              <span aria-hidden="true" />
-            </article>
+                <article className="event-card ritual-recent-activity-card">
+                  <div className="section-heading compact">
+                    <h2>Recent Activity</h2>
+                    <button className="secondary-button ritual-mini-inline" onClick={() => setRoute("library")} type="button">
+                      View All
+                    </button>
+                  </div>
+                  <div className="ritual-activity-list">
+                    {recentActivityItems.map((item) => {
+                      const activitySloka = slokaList.find((sloka) => sloka.id === item.id);
+                      if (!activitySloka) return null;
+                      return (
+                        <button className="ritual-activity-row" key={`recent-${item.id}`} onClick={() => void loadSlokaDetail(item.id, "home")} type="button">
+                          <SlokaTile sloka={activitySloka} />
+                          <span>
+                            <strong>{item.title}</strong>
+                            <small>{item.meta}</small>
+                          </span>
+                          <span className="ritual-activity-chevron">{">"}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </article>
+              </>
+            ) : (
+              <>
+                <article className="event-card ritual-dashboard-card">
+                  <div className="ritual-stat-block">
+                    <span className="ritual-stat-label">Daily Streak</span>
+                    <strong>{chantProgress.streakDays}</strong>
+                    <small>days</small>
+                  </div>
+                  <div
+                    className="ritual-goal-ring"
+                    aria-label={`Today goal ${dailyProgressPercent}% complete`}
+                    style={{ ["--progress" as string]: `${dailyProgressPercent}%` } as CSSProperties}
+                  >
+                    <Image
+                      alt=""
+                      aria-hidden="true"
+                      className="ritual-goal-mark"
+                      height={610}
+                      src={BRAND_MARK_SRC}
+                      unoptimized
+                      width={760}
+                    />
+                  </div>
+                  <div className="ritual-stat-block right">
+                    <span className="ritual-stat-label">Today&apos;s Goal</span>
+                    <strong>{chantProgress.dailyTarget}</strong>
+                    <small>chants</small>
+                    <button className="ritual-mini-pill" onClick={() => setRoute("sessions")} type="button">
+                      Edit Goal
+                    </button>
+                  </div>
+                </article>
+
+                <article className="ritual-quote-card">
+                  <p>Let the divine words sustain your mind and soothe your soul.</p>
+                  <span aria-hidden="true" />
+                </article>
+              </>
+            )}
 
             <article className="event-card dashboard-top-search">
               <label className="field-label" htmlFor="dashboard-search">
@@ -1713,20 +2297,22 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
               </div>
             </article>
 
-            <article className="event-card ritual-stats-card">
-              <div>
-                <small>Total Chants</small>
-                <strong>{chantProgress.totalCount.toLocaleString()}</strong>
-              </div>
-              <div>
-                <small>Favorites</small>
-                <strong>{favorites.size}</strong>
-              </div>
-              <div>
-                <small>Done Days</small>
-                <strong>{recentCalendarDays.filter((day) => day.completedCount > 0).length}</strong>
-              </div>
-            </article>
+            {!setupProfile.completed && (
+              <article className="event-card ritual-stats-card">
+                <div>
+                  <small>Total Chants</small>
+                  <strong>{chantProgress.totalCount.toLocaleString()}</strong>
+                </div>
+                <div>
+                  <small>Favorites</small>
+                  <strong>{favorites.size}</strong>
+                </div>
+                <div>
+                  <small>Done Days</small>
+                  <strong>{recentCalendarDays.filter((day) => day.completedCount > 0).length}</strong>
+                </div>
+              </article>
+            )}
 
             <article className="event-card">
               <div className="section-heading compact">
@@ -2452,32 +3038,64 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
               ))}
             </div>
 
-            <div className="sloka-list">
-              {filteredSlokas.map((sloka) => (
-                <article className="event-card" key={`library-${sloka.id}`}>
-                  <button className="sloka-row" onClick={() => void loadSlokaDetail(sloka.id, "library")} type="button">
-                    <SlokaTile sloka={sloka} />
-                    <span>
-                      <strong>{sloka.title}</strong>
-                      <small>{sloka.titleTamil} | {sloka.category} | {sloka.duration}</small>
-                    </span>
-                    <span>{">"}</span>
-                  </button>
-                  <div className="meta-row">
-                    <span className="mini-muted">{sloka.lineCount} lines</span>
+            {setupProfile.completed ? (
+              <div className="ritual-library-grid">
+                {filteredSlokas.map((sloka) => (
+                  <article className="event-card ritual-library-card" key={`library-${sloka.id}`}>
                     <button
                       aria-label={favorites.has(sloka.id) ? `Remove ${sloka.title} from favorites` : `Add ${sloka.title} to favorites`}
-                      className={`favorite-icon-button ${favorites.has(sloka.id) ? "active" : ""}`}
+                      className={`favorite-icon-button ritual-library-favorite ${favorites.has(sloka.id) ? "active" : ""}`}
                       onClick={() => toggleFavorite(sloka.id)}
                       title={favorites.has(sloka.id) ? "Remove favorite" : "Add favorite"}
                       type="button"
                     >
                       <FavoriteGlyph active={favorites.has(sloka.id)} />
                     </button>
-                  </div>
-                </article>
-              ))}
-            </div>
+                    <button className="ritual-library-main" onClick={() => void loadSlokaDetail(sloka.id, "library")} type="button">
+                      <span className="ritual-library-tile">
+                        <SlokaTile sloka={sloka} />
+                      </span>
+                      <strong>{sloka.title}</strong>
+                      <small>{sloka.titleTamil}</small>
+                    </button>
+                    <div className="ritual-library-meta">
+                      <span>{sloka.duration}</span>
+                      <span>{`${chantProgress.perSlokaCount[sloka.id] ?? 0} chants`}</span>
+                    </div>
+                    <button className="ritual-library-play" onClick={() => void loadSlokaDetail(sloka.id, "library")} type="button">
+                      {"▶"}
+                    </button>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className="sloka-list">
+                {filteredSlokas.map((sloka) => (
+                  <article className="event-card" key={`library-${sloka.id}`}>
+                    <button className="sloka-row" onClick={() => void loadSlokaDetail(sloka.id, "library")} type="button">
+                      <SlokaTile sloka={sloka} />
+                      <span>
+                        <strong>{sloka.title}</strong>
+                        <small>{sloka.titleTamil} | {sloka.category} | {sloka.duration}</small>
+                      </span>
+                      <span>{">"}</span>
+                    </button>
+                    <div className="meta-row">
+                      <span className="mini-muted">{sloka.lineCount} lines</span>
+                      <button
+                        aria-label={favorites.has(sloka.id) ? `Remove ${sloka.title} from favorites` : `Add ${sloka.title} to favorites`}
+                        className={`favorite-icon-button ${favorites.has(sloka.id) ? "active" : ""}`}
+                        onClick={() => toggleFavorite(sloka.id)}
+                        title={favorites.has(sloka.id) ? "Remove favorite" : "Add favorite"}
+                        type="button"
+                      >
+                        <FavoriteGlyph active={favorites.has(sloka.id)} />
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
           </section>
         )}
 
@@ -2577,6 +3195,47 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
                 </button>
               </div>
             </article>
+
+            <article className="event-card profile-language-card">
+              <h3>Language Settings</h3>
+              <p>Choose Tamil or English, and update how slokas are shown while chanting.</p>
+              <div className="profile-language-grid">
+                <button
+                  className={`switch-button ${setupProfile.language === "tamil" ? "active" : ""}`}
+                  onClick={() => applyLanguagePreferences({ language: "tamil" })}
+                  type="button"
+                >
+                  {"\u0ba4\u0bae\u0bbf\u0bb4\u0bcd"}
+                </button>
+                <button
+                  className={`switch-button ${setupProfile.language === "english" ? "active" : ""}`}
+                  onClick={() => applyLanguagePreferences({ language: "english" })}
+                  type="button"
+                >
+                  English
+                </button>
+              </div>
+              <h4>Reader View</h4>
+              <div className="profile-language-grid">
+                <button
+                  className={`switch-button ${setupProfile.viewMode === "tamil_only" ? "active" : ""}`}
+                  onClick={() => applyLanguagePreferences({ viewMode: "tamil_only" })}
+                  type="button"
+                >
+                  Tamil only
+                </button>
+                <button
+                  className={`switch-button ${setupProfile.viewMode === "tamil_english" ? "active" : ""}`}
+                  onClick={() => applyLanguagePreferences({ viewMode: "tamil_english" })}
+                  type="button"
+                >
+                  Tamil + Meaning
+                </button>
+              </div>
+              <p className="profile-language-note">
+                You can change these anytime. English mode focuses on English lines only.
+              </p>
+            </article>
           </section>
         )}
 
@@ -2611,79 +3270,71 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
               />
               <div className="ref-player-bottom-divider" aria-hidden="true" />
 
-              <article className="sloka-action-card">
-                <div
-                  className={`sloka-target-ring ${selectedSlokaDoneToday ? "done" : ""}`}
-                  aria-label={`Sloka progress ${selectedLinePercent}%`}
-                  style={{ ["--progress" as string]: `${selectedLinePercent}%` } as CSSProperties}
-                >
-                  <strong>{selectedSlokaDoneToday ? "Done" : `${selectedLinePercent}%`}</strong>
-                  <span>{selectedPractice.activeLineIndex + 1}/{selectedSloka.lines.length}</span>
-                </div>
-                <div className="sloka-action-copy">
-                  <h3>{selectedSlokaDoneToday ? "Finished today" : "Chant this sloka"}</h3>
-                  <p>
-                    {selectedPractice.startedAt && !selectedPractice.endedAt
-                      ? `Started ${new Date(selectedPractice.startedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
-                      : selectedPractice.endedAt
-                        ? `Ended ${new Date(selectedPractice.endedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
-                        : "Start when you begin reading, then finish when the sloka is complete."}
-                  </p>
-                  <span>Time spent: {formatElapsedTime(selectedSessionSeconds)}</span>
-                </div>
-                <label className="sloka-schedule-field" htmlFor="sloka-schedule-time">
-                  Schedule
-                  <input
-                    id="sloka-schedule-time"
-                    onChange={(event) => setSelectedScheduleTime(event.target.value)}
-                    type="time"
-                    value={selectedPractice.scheduleTime}
-                  />
-                </label>
-                <div className="sloka-action-buttons">
-                  <button className="secondary-button" onClick={startSlokaPractice} type="button">
-                    Start
-                  </button>
-                  <button className="primary-button" onClick={finishSlokaPractice} type="button">
-                    Finish
-                  </button>
-                  <button className="secondary-button" onClick={resetSlokaPractice} type="button">
-                    Reset
-                  </button>
-                </div>
-                {chantLists.length > 0 && (
-                  <div className="sloka-add-to-list">
-                    <select
-                      aria-label="Choose chant list"
-                      onChange={(event) => setDetailChantListId(event.target.value)}
-                      value={detailChantListTargetId}
-                    >
-                      {chantLists.map((list) => (
-                        <option key={`detail-list-option-${list.id}`} value={list.id}>
-                          {list.name}
-                        </option>
-                      ))}
-                    </select>
-                    <button
-                      className="secondary-button"
-                      onClick={() => addSlokaToChantList(detailChantListTargetId, selectedSloka.id)}
-                      type="button"
-                    >
-                      Add to List
-                    </button>
-                  </div>
-                )}
-              </article>
+              {!selectedSlokaDoneToday && <p className="detail-scroll-hint">Scroll to the end to mark this chant complete.</p>}
 
               <ReaderControls
+                autoScroll={setupProfile.autoScroll}
                 language={readerLanguage}
                 onDecreaseFont={decreaseReaderFontScale}
                 onIncreaseFont={increaseReaderFontScale}
+                onSetScrollSpeed={(speed) => updateSetupProfile({ scrollSpeed: speed })}
                 onSetLanguage={setReaderLanguage}
+                onToggleAutoScroll={() => updateSetupProfile({ autoScroll: !setupProfile.autoScroll })}
                 onToggleMeaning={() => setShowMeaning((value) => !value)}
+                scrollSpeed={setupProfile.scrollSpeed}
                 showMeaning={showMeaning}
               />
             </article>
+
+            {showCompletionPopup && (
+              <div
+                className="sloka-completion-backdrop"
+                onClick={() => setShowCompletionPopup(false)}
+                onKeyDown={(event) => {
+                  if (event.key === "Escape") setShowCompletionPopup(false);
+                }}
+                role="button"
+                tabIndex={0}
+              >
+                <article className="sloka-completion-panel" onClick={(event) => event.stopPropagation()}>
+                  <div className="sloka-completion-crest" aria-hidden="true">
+                    <span>&#10003;</span>
+                  </div>
+                  <h3>Completed this chant?</h3>
+                  <p>You reached the end of the sloka. Mark as done only if you have completed chanting.</p>
+                  <div className="sloka-completion-actions">
+                    <button
+                      className="primary-button"
+                      onClick={() => {
+                        markSelectedSlokaComplete();
+                      }}
+                      type="button"
+                    >
+                      Yes, Mark as Done
+                    </button>
+                    <button
+                      className="secondary-button"
+                      onClick={() => {
+                        setShowCompletionPopup(false);
+                      }}
+                      type="button"
+                    >
+                      Not Yet
+                    </button>
+                    <button
+                      className="sloka-completion-link"
+                      onClick={() => {
+                        setShowCompletionPopup(false);
+                        setRoute("library");
+                      }}
+                      type="button"
+                    >
+                      Back to Library
+                    </button>
+                  </div>
+                </article>
+              </div>
+            )}
 
           </section>
         )}
@@ -2753,3 +3404,5 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
     </div>
   );
 }
+
+

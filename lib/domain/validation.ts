@@ -25,7 +25,7 @@ function asNonEmptyString(value: unknown, field: string, maxLength = 120): strin
 }
 
 function asLanguageView(value: unknown): LanguageView {
-  if (value === "both" || value === "tamil" || value === "english") {
+  if (value === "tamil" || value === "english") {
     return value;
   }
   throw new Error("languageView is invalid.");
