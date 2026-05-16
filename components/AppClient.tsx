@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type SVGProps, type TouchEvent as ReactTouchEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type TouchEvent as ReactTouchEvent } from "react";
 import Image from "next/image";
 import Sanscript from "@indic-transliteration/sanscript";
 import type { Sloka, SlokaSummary } from "@/lib/domain/types";
@@ -403,9 +403,36 @@ function FavoriteGlyph({ active }: { active: boolean }) {
 
 function BackGlyph() {
   return (
-    <svg aria-hidden="true" viewBox="0 0 24 24">
+    <svg
+      aria-hidden="true"
+      fill="none"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="2.25"
+      viewBox="0 0 24 24"
+    >
       <path d="M15 5 8 12l7 7" />
       <path d="M9 12h10" />
+    </svg>
+  );
+}
+
+function SearchGlyph() {
+  return (
+    <svg aria-hidden="true" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.9" viewBox="0 0 24 24">
+      <circle cx="11" cy="11" r="6.5" />
+      <path d="m16 16 4 4" />
+    </svg>
+  );
+}
+
+function FilterGlyph() {
+  return (
+    <svg aria-hidden="true" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.9" viewBox="0 0 24 24">
+      <path d="M4 6h16" />
+      <path d="M7 12h10" />
+      <path d="M10 18h4" />
     </svg>
   );
 }
@@ -573,18 +600,6 @@ function SlokaTile({ sloka }: { sloka: SlokaSummary }) {
   }
 
   return <span className="tile">{sloka.category.slice(0, 2).toUpperCase()}</span>;
-}
-
-function LotusBrandIcon(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 48 48" {...props}>
-      <path d="M24 36c-6.5-5.3-8-12.6 0-22 8 9.4 6.5 16.7 0 22Z" fill="currentColor" />
-      <path d="M15 35c-5.7-3.1-7.8-8.8-5.8-15.7 6.4 2.6 9.3 7.7 5.8 15.7Z" fill="currentColor" opacity="0.72" />
-      <path d="M33 35c5.7-3.1 7.8-8.8 5.8-15.7-6.4 2.6-9.3 7.7-5.8 15.7Z" fill="currentColor" opacity="0.72" />
-      <path d="M24 38c-7.4 0-13.5-2.1-18-6.3 6.5-.9 12.3.4 18 4.1 5.7-3.7 11.5-5 18-4.1-4.5 4.2-10.6 6.3-18 6.3Z" fill="currentColor" opacity="0.42" />
-      <path d="M13 41h22" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="2" opacity="0.55" />
-    </svg>
-  );
 }
 
 function RitualNavIcon({ name }: { name: "chants" | "counter" | "home" | "menu" | "profile" }) {
@@ -1218,12 +1233,34 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
 
   const setupProgressStep = Math.max(1, Math.min(4, setupStep));
   const openSetupFlow = useCallback(() => {
+    if (setupProfile.completed) {
+      setSetupStep(0);
+      setShowStartPrompt(false);
+      setGuidedStart(true);
+      setRoute("home");
+      return;
+    }
     setSetupStep(0);
     setShowStartPrompt(true);
-  }, []);
+  }, [setRoute, setupProfile.completed]);
+  const openAllDeities = useCallback(() => {
+    setGuidedStart(false);
+    setSetupStep(0);
+    setShowStartPrompt(false);
+    setLibraryCategory("all");
+    setGodsCategory("all");
+    setRoute("gods");
+  }, [setRoute]);
   const startSetupWizard = useCallback(() => {
     setSetupStep(1);
   }, []);
+  const openSetupFromProfile = useCallback(() => {
+    setGuidedStart(false);
+    setSetupStep(1);
+    setShowStartPrompt(true);
+    setRoute("landing");
+    setLiveMessage("Setup wizard reopened. Update your ritual preferences.");
+  }, [setRoute]);
   const closeSetupFlow = useCallback(() => {
     setSetupStep(0);
     setShowStartPrompt(false);
@@ -1624,9 +1661,6 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
       {route !== "landing" && route !== "detail" && route !== "home" && (
         <header className="app-header">
           <div className="brand">
-            <span className="brand-mark">
-              <LotusBrandIcon />
-            </span>
             <div>
               <strong>My Shloka Ritual</strong>
               <span>Daily chants for inner calm</span>
@@ -1700,18 +1734,20 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
                           <section className={`landing-onboarding-step landing-onboarding-step-${step.id}`}>
                             <div className="landing-onboarding-body">
                               {step.id === "brand" ? (
-                                <div className="landing-brand-art">
-                                  <Image
-                                    alt="My Shloka Ritual"
-                                    className="landing-brand-logo"
-                                    height={1280}
-                                    priority
-                                    sizes="(max-width: 900px) 76vw, 290px"
-                                    src={BRAND_LOGO_SRC}
-                                    unoptimized
-                                    width={1280}
-                                  />
-                                </div>
+                                <>
+                                  <div className="landing-brand-art">
+                                    <Image
+                                      alt="My Shloka Ritual"
+                                      className="landing-brand-logo"
+                                      height={1280}
+                                      priority
+                                      sizes="(max-width: 900px) 72vw, 320px"
+                                      src={BRAND_LOGO_SRC}
+                                      unoptimized
+                                      width={1280}
+                                    />
+                                  </div>
+                                </>
                               ) : (
                                 <>
                                   <div className="landing-step-mark">
@@ -1796,53 +1832,57 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
                         />
                       </header>
                       <div className="setup-first-cards">
-                        <article className="setup-first-card">
-                          <div className="setup-first-card-top">
+                        <article className="setup-first-card setup-first-card-ritual">
+                          <div className="setup-first-card-visual">
                             <Image
                               alt=""
                               aria-hidden="true"
-                              className="setup-first-card-mark"
-                              height={760}
-                              src={BRAND_MARK_SRC}
+                              className="setup-first-card-mark setup-first-card-icon-image setup-first-card-icon-ritual"
+                              height={420}
+                              src="/brand/setup-ritual-icon.png"
                               unoptimized
-                              width={760}
+                              width={420}
                             />
-                            <div>
+                          </div>
+                          <div className="setup-first-card-content">
+                            <div className="setup-first-card-copy">
                               <h4>Set Up Ritual</h4>
+                              <span className="setup-first-card-mini-divider" aria-hidden="true" />
                               <p>Personalize your chanting journey. Set goals, choose duration, and create your daily ritual.</p>
                             </div>
+                            <button className="landing-start-button" onClick={startSetupWizard} type="button">
+                              Set Up My Ritual
+                            </button>
                           </div>
-                          <button className="landing-start-button" onClick={startSetupWizard} type="button">
-                            Set Up My Ritual
-                          </button>
+                          <span className="setup-first-card-arrow" aria-hidden="true">{"\u203a"}</span>
                         </article>
                         <article className="setup-first-card setup-first-card-explore">
-                          <div className="setup-first-card-top">
+                          <div className="setup-first-card-visual">
                             <Image
                               alt=""
                               aria-hidden="true"
-                              className="setup-first-card-mark"
-                              height={240}
-                              src="/decor/lotus-icon.svg"
+                              className="setup-first-card-mark setup-first-card-icon-image setup-first-card-icon-library"
+                              height={420}
+                              src="/brand/setup-library-icon.png"
                               unoptimized
-                              width={240}
+                              width={420}
                             />
-                            <div>
-                              <h4>Explore Library</h4>
-                              <p>Browse the collection of slokas by deity, purpose, category, and mood.</p>
-                            </div>
                           </div>
-                          <button
-                            className="secondary-button setup-explore-button"
-                            onClick={() => {
-                              setGuidedStart(false);
-                              setShowStartPrompt(false);
-                              setRoute("home");
-                            }}
-                            type="button"
-                          >
-                            Explore Library
-                          </button>
+                          <div className="setup-first-card-content">
+                            <div className="setup-first-card-copy">
+                              <h4>Explore Library</h4>
+                              <span className="setup-first-card-mini-divider" aria-hidden="true" />
+                              <p>Browse a rich collection of slokas by deity, purpose, category, or mood.</p>
+                            </div>
+                            <button
+                              className="secondary-button setup-explore-button"
+                              onClick={openAllDeities}
+                              type="button"
+                            >
+                              Explore Library
+                            </button>
+                          </div>
+                          <span className="setup-first-card-arrow" aria-hidden="true">{"\u203a"}</span>
                         </article>
                       </div>
                       <p className="setup-first-note">You can set up a ritual anytime from the Profile section.</p>
@@ -2464,20 +2504,51 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
         )}
 
         {route === "gods" && (
-          <section className="screen active">
-            <div className="screen-top">
+          <section className="screen active gods-screen">
+            <div className="screen-top gods-screen-top">
               <button className="icon-button" onClick={() => setRoute("home")} type="button" title="Back">
-                {"<"}
+                <BackGlyph />
               </button>
-              <div>
-                <h1>Browse by Gods</h1>
-                <p>Pick a deity and open related slokas quickly.</p>
+              <div className="gods-screen-top-main">
+                <Image alt="My Shloka Ritual mark" className="gods-screen-logo" height={32} src={BRAND_MARK_SRC} unoptimized width={32} />
+                <div className="gods-screen-top-copy">
+                  <h1>Shloka Library</h1>
+                  <p>Daily chants for inner calm</p>
+                </div>
+              </div>
+              <div className="gods-screen-top-actions">
+                <button className="favorite-icon-button gods-top-action" onClick={() => setRoute("library")} title="Open library" type="button">
+                  <SearchGlyph />
+                </button>
+                <button className="favorite-icon-button gods-top-action" onClick={() => setGodsCategory("all")} title="Reset filter" type="button">
+                  <FilterGlyph />
+                </button>
               </div>
             </div>
 
-            <article className="event-card">
-              <h3>Deity Collection</h3>
-              <div className="deity-grid">
+            <article className="event-card gods-deity-collection">
+              <div className="chip-row gods-chip-row">
+                <button
+                  className={`chip ${godsCategory === "all" ? "active" : ""}`}
+                  onClick={() => setGodsCategory("all")}
+                  type="button"
+                >
+                  All
+                </button>
+                {categories
+                  .filter((category) => category !== "all")
+                  .map((category) => (
+                    <button
+                      className={`chip ${godsCategory === category ? "active" : ""}`}
+                      key={`gods-chip-${category}`}
+                      onClick={() => setGodsCategory(category)}
+                      type="button"
+                    >
+                      {category}
+                    </button>
+                  ))}
+              </div>
+              <div className="deity-grid gods-deity-grid">
                 {deityHighlights.map((deity, index) => (
                   <button
                     className={`deity-card ${godsCategory === deity.category ? "active" : ""}`}
@@ -2504,58 +2575,47 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
                   </button>
                 ))}
               </div>
-              <div className="chip-row">
-                <button
-                  className={`chip ${godsCategory === "all" ? "active" : ""}`}
-                  onClick={() => setGodsCategory("all")}
-                  type="button"
-                >
-                  All
-                </button>
-                {categories
-                  .filter((category) => category !== "all")
-                  .map((category) => (
-                    <button
-                      className={`chip ${godsCategory === category ? "active" : ""}`}
-                      key={`gods-chip-${category}`}
-                      onClick={() => setGodsCategory(category)}
-                      type="button"
-                    >
-                      {category}
-                    </button>
-                  ))}
-              </div>
             </article>
 
-            <div className="section-heading">
+            <div className="section-heading compact">
               <h2>{godsCategory === "all" ? "All Deity Slokas" : `${godsCategory} Slokas`}</h2>
             </div>
-            <div className="sloka-list">
-              {godsFilteredSlokas.map((sloka) => (
-                <article className="event-card" key={`gods-${sloka.id}`}>
-                  <button className="sloka-row" onClick={() => void loadSlokaDetail(sloka.id, "gods")} type="button">
-                    <SlokaTile sloka={sloka} />
-                    <span>
-                      <strong>{sloka.title}</strong>
-                      <small>{sloka.titleTamil} | {sloka.category} | {sloka.duration}</small>
-                    </span>
-                    <span>{">"}</span>
-                  </button>
-                  <div className="meta-row">
-                    <span className="mini-muted">{sloka.lineCount} lines</span>
+            {godsFilteredSlokas.length === 0 ? (
+              <article className="event-card">
+                <h3>No slokas found</h3>
+                <p>Try a different deity filter.</p>
+              </article>
+            ) : (
+              <div className="ritual-library-grid gods-results-grid">
+                {godsFilteredSlokas.map((sloka) => (
+                  <article className="event-card ritual-library-card gods-result-card" key={`gods-${sloka.id}`}>
                     <button
                       aria-label={favorites.has(sloka.id) ? `Remove ${sloka.title} from favorites` : `Add ${sloka.title} to favorites`}
-                      className={`favorite-icon-button ${favorites.has(sloka.id) ? "active" : ""}`}
+                      className={`favorite-icon-button ritual-library-favorite ${favorites.has(sloka.id) ? "active" : ""}`}
                       onClick={() => toggleFavorite(sloka.id)}
                       title={favorites.has(sloka.id) ? "Remove favorite" : "Add favorite"}
                       type="button"
                     >
                       <FavoriteGlyph active={favorites.has(sloka.id)} />
                     </button>
-                  </div>
-                </article>
-              ))}
-            </div>
+                    <button className="ritual-library-main gods-library-main" onClick={() => void loadSlokaDetail(sloka.id, "gods")} type="button">
+                      <span className="ritual-library-tile">
+                        <SlokaTile sloka={sloka} />
+                      </span>
+                      <strong>{sloka.title}</strong>
+                      <small>{sloka.titleTamil}</small>
+                    </button>
+                    <div className="ritual-library-meta">
+                      <span>{sloka.duration}</span>
+                      <span>{`${sloka.lineCount} lines`}</span>
+                    </div>
+                    <button className="ritual-library-play" onClick={() => void loadSlokaDetail(sloka.id, "gods")} type="button">
+                      {"\u25B6"}
+                    </button>
+                  </article>
+                ))}
+              </div>
+            )}
           </section>
         )}
 
@@ -3235,6 +3295,11 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
               <p className="profile-language-note">
                 You can change these anytime. English mode focuses on English lines only.
               </p>
+              <div className="action-row">
+                <button className="secondary-button" onClick={openSetupFromProfile} type="button">
+                  Change Setup
+                </button>
+              </div>
             </article>
           </section>
         )}
