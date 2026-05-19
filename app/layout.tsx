@@ -25,8 +25,8 @@ const notoSerifTamil = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Sloka Sabha",
-  description: "Tamil and English sloka app for community chanting sessions.",
+  title: "My Shloka Ritual",
+  description: "Daily chants for inner calm — a calm South Indian sloka ritual app with Tamil and English support.",
 };
 
 export default function RootLayout({

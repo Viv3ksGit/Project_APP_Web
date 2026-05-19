@@ -78,7 +78,7 @@ async function runChecks() {
 
 try {
   await runChecks();
-  console.log(`Sloka Sabha app check passed at ${baseUrl}`);
+  console.log(`My Shloka Ritual app check passed at ${baseUrl}`);
   console.log("CSS, images, and video are being served correctly.");
 } catch (error) {
   console.error(error instanceof Error ? error.message : error);

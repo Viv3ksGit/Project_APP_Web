@@ -40,29 +40,89 @@ const STORAGE_KEYS = {
   reminders: "sloka_sabha_reminders_v1",
   readerPrefs: "sloka_sabha_reader_prefs_v1",
   setupProfile: "sloka_sabha_setup_profile_v1",
+  theme: "msr_theme_v1",
 };
 const WEEK_DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"] as const;
 const DAILY_TARGET_OPTIONS = [11, 21, 51] as const;
 const SLOKA_RECOMMENDATIONS: Record<string, { days: string[]; reason: string }> = {
+  // Shiva — Monday
   "lingashtakam": { days: ["Monday"], reason: "Traditionally chanted for Shiva on Mondays." },
   "shiva-panchakshara-stotram": { days: ["Monday"], reason: "A common Shiva stotram for Monday prayers." },
-  "ya-devi-sarva-bhuteshu": { days: ["Friday"], reason: "Friday is commonly observed for Devi worship." },
-  "hanuman-chalisa": { days: ["Tuesday", "Saturday"], reason: "Tuesday and Saturday are widely observed for Hanuman worship." },
-  "hanuman-dhyanam": { days: ["Tuesday", "Saturday"], reason: "Popular Hanuman chanting days in many communities." },
-  "guru-brahma-guru-vishnu": { days: ["Thursday"], reason: "Thursday is associated with Guru worship." },
-  "shantakaram-bhujagashayanam": { days: ["Thursday", "Saturday"], reason: "Often chanted for Vishnu prayers on these days." },
+  "maha-mrityunjaya": { days: ["Monday"], reason: "Chanted on Mondays for Lord Shiva's blessings." },
+  "shiva-moola-mantra": { days: ["Monday"], reason: "Om Namah Shivaya is chanted every Monday." },
+  "shiva-ashtakam": { days: ["Monday"], reason: "Monday Shiva worship tradition." },
+  "shiva-tandava-stotram": { days: ["Monday", "Friday"], reason: "Chanted for Shiva on Mondays and auspicious Fridays." },
+  "shiva-chalisa": { days: ["Monday"], reason: "Shiva Chalisa chanted on Mondays." },
+  // Vishnu / Guruvayurappan — Thursday, Saturday
+  "shantakaram-bhujagashayanam": { days: ["Thursday", "Saturday"], reason: "Vishnu prayers observed on Thursdays and Saturdays." },
+  "vishnu-sahasranama-excerpt": { days: ["Thursday", "Saturday"], reason: "Vishnu Sahasranama chanted on Thursdays." },
+  "venkateshwara-suprabhatam": { days: ["Thursday", "Saturday"], reason: "Venkateshwara Suprabhatam chanted daily, especially on Saturdays." },
+  "narayaniyam-dhyanam": { days: ["Thursday"], reason: "Guruvayurappan worship is observed on Thursdays." },
+  // Devi — Friday
+  "ya-devi-sarva-bhuteshu": { days: ["Friday"], reason: "Friday is the auspicious day for Devi worship." },
+  "lalitha-sahasranama-excerpt": { days: ["Friday"], reason: "Lalitha Sahasranama is chanted on Fridays." },
+  "mahalakshmi-ashtakam": { days: ["Friday"], reason: "Lakshmi puja is observed on Fridays." },
+  // Hanuman — Tuesday, Saturday
+  "hanuman-chalisa": { days: ["Tuesday", "Saturday"], reason: "Tuesday and Saturday are dedicated to Lord Hanuman." },
+  "hanuman-dhyanam": { days: ["Tuesday", "Saturday"], reason: "Hanuman worship on Tuesdays and Saturdays." },
+  // Muruga — Tuesday, Friday (from xlsx)
+  "kanda-shashti-kavasam-excerpt": { days: ["Tuesday", "Friday"], reason: "Muruga worship on Tuesdays; Skanda Sashti falls on Fridays." },
+  "subramanya-bhujangam": { days: ["Tuesday", "Friday"], reason: "Subramanya puja on Tuesdays and Fridays." },
+  "thirumurugatrupadai-excerpt": { days: ["Tuesday"], reason: "Thirumurugatrupadai chanted on Tuesdays for Muruga." },
+  "kandar-anoobothi": { days: ["Tuesday", "Friday"], reason: "Muruga devotion on Tuesdays and Fridays." },
+  "kandar-alangaram": { days: ["Friday"], reason: "Kandar Alangaram chanted on Fridays for family harmony." },
+  "vel-maral": { days: ["Tuesday"], reason: "Vel Maral chanted on Tuesdays for strength and obstacle removal." },
+  "thirupugazh-arumugam": { days: ["Tuesday", "Friday"], reason: "Thirupugazh is chanted on Tuesdays and Fridays." },
+  // Ganesh — Wednesday, before any important day
+  "vakratunda-mahakaya": { days: ["Wednesday"], reason: "Ganesh worship is observed on Wednesdays." },
+  "ganesha-pancharatnam": { days: ["Wednesday"], reason: "Ganesha puja on Wednesdays." },
+  "vinayagar-agaval": { days: ["Wednesday"], reason: "Vinayagar Agaval chanted on Wednesdays." },
+  "karya-sidhi-malai": { days: ["Wednesday"], reason: "Karya Sidhi Malai chanted for success on Wednesdays." },
+  // Guru — Thursday
+  "guru-brahma-guru-vishnu": { days: ["Thursday"], reason: "Thursday is Guru's day — Guruvara." },
+  // Saraswati — Friday, before studies
+  "saraswati-vandana": { days: ["Friday", "Thursday"], reason: "Saraswati Vandana chanted on Fridays and before study." },
+  // Ayyappa — Saturday
+  "harivarasanam": { days: ["Saturday"], reason: "Harivarasanam is the night hymn sung at Sabarimala on all days, especially Saturdays." },
+  // Rama — Tuesday, Wednesday
+  "rama-bhadram-bhajeham": { days: ["Tuesday", "Wednesday"], reason: "Rama chanting is auspicious on Tuesdays and Wednesdays." },
+  // Krishna — Wednesday, Thursday
+  "krishna-madhurashtakam": { days: ["Wednesday", "Thursday"], reason: "Krishna worship on Wednesdays and Thursdays." },
+  "achyutam-keshavam": { days: ["Wednesday", "Thursday"], reason: "Achyutam Keshavam chanted on Wednesdays and Thursdays." },
 };
 const HANUMAN_ICON_SRC = "/brand/hanuman-icon-clean.png";
 const DEITY_PHOTOS: Record<string, string> = {
-  Shiva: "/deities/line/shiva.png",
-  Hanuman: HANUMAN_ICON_SRC,
+  Shiva: "/deities/line/shiva-player-clean-v2.png",
+  Hanuman: "/deities/line/hanuman.png",
   Durga: "/deities/line/durga.png",
-  Vishnu: "/deities/line/vishnu-clean.png",
+  Vishnu: "/deities/line/vishnu.png",
   Guru: "/deities/line/ayyappa.png",
+  Ganesh: "/deities/line/ganesh.png",
+  Ganesha: "/deities/line/ganesh.png",
+  Krishna: "/deities/line/krishna.png",
+  Rama: "/deities/line/rama.png",
+  Lakshmi: "/deities/line/lakshmi.png",
+  Saraswati: "/deities/line/saraswati.png",
+  Muruga: "/deities/line/muruga.png",
+  Kali: "/deities/line/kali.png",
+  Brahma: "/deities/line/brahma.png",
+  Ayyappa: "/deities/line/ayyappa.png",
+  Guruvayurappan: "/deities/line/guruvayurappan.png",
+  "Sai Baba": "/deities/line/sai-baba.png",
+  Surya: "/deities/line/surya.png",
+  Narasimha: "/deities/line/narasimha.png",
+  Venkateshwara: "/deities/line/venkateshwara.png",
+  Amman: "/deities/line/amman.png",
 };
 const DEITY_PLAYER_HERO_PHOTOS: Partial<Record<string, string>> = {
-  Hanuman: HANUMAN_ICON_SRC,
+  Hanuman: "/deities/line/hanuman.png",
   Shiva: "/deities/line/shiva-player-clean-v2.png",
+  Ganesh: "/deities/line/ganesh.png",
+  Ganesha: "/deities/line/ganesh.png",
+  Krishna: "/deities/line/krishna.png",
+  Lakshmi: "/deities/line/lakshmi.png",
+  Durga: "/deities/line/durga.png",
+  Vishnu: "/deities/line/vishnu-clean.png",
 };
 const BRAND_MARK_SRC = "/brand/my-shloka-ritual-mark.png";
 const BRAND_LOGO_SRC = "/brand/my-shloka-ritual-logo-transparent.png";
@@ -341,17 +401,15 @@ function getReaderPrefsFromSetup(setup: SetupProfile): Pick<ReaderPrefs, "langua
   return { language: "tamil", showMeaning: true };
 }
 
-function getAutoScrollTiming(speed: SetupScrollSpeed, ritualStyle: SetupRitualStyle): { intervalMs: number; stepPx: number } {
-  const baseInterval = speed === "slow" ? 210 : speed === "medium" ? 150 : 120;
-  const baseStep = speed === "slow" ? 5 : speed === "medium" ? 8 : 11;
-
+function getAutoScrollTiming(speed: SetupScrollSpeed, ritualStyle: SetupRitualStyle): { pxPerSecond: number } {
+  const basePxPerSecond = speed === "slow" ? 22 : speed === "medium" ? 42 : 70;
   if (ritualStyle === "calm") {
-    return { intervalMs: baseInterval + 70, stepPx: Math.max(4, baseStep - 1) };
+    return { pxPerSecond: Math.max(14, basePxPerSecond - 8) };
   }
   if (ritualStyle === "timed") {
-    return { intervalMs: Math.max(90, baseInterval - 35), stepPx: baseStep + 2 };
+    return { pxPerSecond: basePxPerSecond + 14 };
   }
-  return { intervalMs: baseInterval, stepPx: baseStep };
+  return { pxPerSecond: basePxPerSecond };
 }
 
 function findVerticalScrollContainer(): Window | HTMLElement {
@@ -530,52 +588,68 @@ function ReaderControls({
   showMeaning,
   autoScroll,
   scrollSpeed,
+  activeLineIndex,
+  totalLines,
   onDecreaseFont,
   onIncreaseFont,
   onSetLanguage,
   onToggleMeaning,
   onToggleAutoScroll,
   onSetScrollSpeed,
+  onPrevLine,
+  onNextLine,
 }: {
   language: ReaderLanguage;
   showMeaning: boolean;
   autoScroll: boolean;
   scrollSpeed: SetupScrollSpeed;
+  activeLineIndex: number;
+  totalLines: number;
   onDecreaseFont: () => void;
   onIncreaseFont: () => void;
   onSetLanguage: (language: ReaderLanguage) => void;
   onToggleMeaning: () => void;
   onToggleAutoScroll: () => void;
   onSetScrollSpeed: (speed: SetupScrollSpeed) => void;
+  onPrevLine: () => void;
+  onNextLine: () => void;
 }) {
   return (
     <article className="ref-reader-controls-card" aria-label="Reader controls">
-      <div className="ref-reader-controls-row">
-        <button className="ref-reader-button" onClick={onDecreaseFont} title="Decrease font size" type="button">
-          A-
-        </button>
-        <button className="ref-reader-button" onClick={onIncreaseFont} title="Increase font size" type="button">
-          A+
-        </button>
-        <button className={`ref-reader-chip ${language === "tamil" ? "active" : ""}`} onClick={() => onSetLanguage("tamil")} type="button">{"\u0ba4\u0bae\u0bbf\u0bb4\u0bcd"}</button>
-        <button className={`ref-reader-chip ${language === "english" ? "active" : ""}`} onClick={() => onSetLanguage("english")} type="button">
-          English
-        </button>
-        <button className={`ref-reader-chip meaning ${showMeaning ? "active" : ""}`} onClick={onToggleMeaning} type="button">Meaning</button>
+      {/* Row 1: language + meaning + font */}
+      <div className="rcc-row">
+        <div className="rcc-seg">
+          <button className={`rcc-seg-btn ${language === "tamil" ? "active" : ""}`} onClick={() => onSetLanguage("tamil")} type="button">{"\u0ba4\u0bae\u0bbf\u0bb4\u0bcd"}</button>
+          <button className={`rcc-seg-btn ${language === "english" ? "active" : ""}`} onClick={() => onSetLanguage("english")} type="button">English</button>
+        </div>
+        <button className={`rcc-pill ${showMeaning ? "active" : ""}`} onClick={onToggleMeaning} type="button">Meaning</button>
+        <div className="rcc-seg rcc-font-seg">
+          <button className="rcc-seg-btn" onClick={onDecreaseFont} aria-label="Smaller text" type="button"><span className="rcc-a-sm">A</span></button>
+          <button className="rcc-seg-btn" onClick={onIncreaseFont} aria-label="Larger text" type="button"><span className="rcc-a-lg">A</span></button>
+        </div>
       </div>
-      <div className="ref-reader-controls-row secondary">
-        <button className={`ref-reader-chip ${autoScroll ? "active" : ""}`} onClick={onToggleAutoScroll} type="button">
-          {autoScroll ? "Auto On" : "Auto Off"}
+
+      {/* Row 2: line nav + auto-scroll + speed */}
+      <div className="rcc-row">
+        <div className="rcc-seg">
+          <button className="rcc-seg-btn rcc-nav-btn" onClick={onPrevLine} disabled={activeLineIndex === 0} aria-label="Previous line" type="button">
+            <svg aria-hidden="true" fill="none" height="12" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" viewBox="0 0 24 24" width="12"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <span className="rcc-count">{activeLineIndex + 1}<em>/</em>{totalLines}</span>
+          <button className="rcc-seg-btn rcc-nav-btn" onClick={onNextLine} disabled={activeLineIndex >= totalLines - 1} aria-label="Next line" type="button">
+            <svg aria-hidden="true" fill="none" height="12" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" viewBox="0 0 24 24" width="12"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        </div>
+
+        <button className={`rcc-pill ${autoScroll ? "active" : ""}`} onClick={onToggleAutoScroll} type="button">
+          Scroll {autoScroll ? "On" : "Off"}
         </button>
-        <button className={`ref-reader-chip speed ${scrollSpeed === "slow" ? "active" : ""}`} onClick={() => onSetScrollSpeed("slow")} type="button">
-          Slow
-        </button>
-        <button className={`ref-reader-chip speed ${scrollSpeed === "medium" ? "active" : ""}`} onClick={() => onSetScrollSpeed("medium")} type="button">
-          Medium
-        </button>
-        <button className={`ref-reader-chip speed ${scrollSpeed === "fast" ? "active" : ""}`} onClick={() => onSetScrollSpeed("fast")} type="button">
-          Fast
-        </button>
+
+        <div className="rcc-seg">
+          <button className={`rcc-seg-btn ${scrollSpeed === "slow" ? "active" : ""}`} onClick={() => onSetScrollSpeed("slow")} type="button">Slow</button>
+          <button className={`rcc-seg-btn ${scrollSpeed === "medium" ? "active" : ""}`} onClick={() => onSetScrollSpeed("medium")} type="button">Med</button>
+          <button className={`rcc-seg-btn ${scrollSpeed === "fast" ? "active" : ""}`} onClick={() => onSetScrollSpeed("fast")} type="button">Fast</button>
+        </div>
       </div>
     </article>
   );
@@ -616,9 +690,13 @@ function RitualNavIcon({ name }: { name: "chants" | "counter" | "home" | "menu" 
   if (name === "chants") {
     return (
       <svg aria-hidden="true" viewBox="0 0 24 24">
-        <path d="M9 18.5V6.5l9-2v12" />
-        <path d="M9 18.5c0 1.4-1.3 2.5-3 2.5s-3-1.1-3-2.5S4.3 16 6 16s3 1.1 3 2.5Z" />
-        <path d="M18 16.5c0 1.4-1.3 2.5-3 2.5s-3-1.1-3-2.5 1.3-2.5 3-2.5 3 1.1 3 2.5Z" />
+        <path d="M12 14c-3 0-5.5-1.6-5.5-4 0-1.7 1.4-3 3-3 1 0 1.9.4 2.5 1 .6-.6 1.5-1 2.5-1 1.6 0 3 1.3 3 3 0 2.4-2.5 4-5.5 4Z" />
+        <path d="M8 13.5c0 1.1 1.8 2 4 2s4-.9 4-2" />
+        <path d="M12 5.5v-2" />
+        <path d="M8.5 6 7.5 4.2" />
+        <path d="M15.5 6l1-1.8" />
+        <path d="M5.5 8.5 4 7.5" />
+        <path d="M18.5 8.5 20 7.5" />
       </svg>
     );
   }
@@ -626,9 +704,15 @@ function RitualNavIcon({ name }: { name: "chants" | "counter" | "home" | "menu" 
   if (name === "counter") {
     return (
       <svg aria-hidden="true" viewBox="0 0 24 24">
-        <path d="M12 4a8 8 0 1 1-7.6 5.5" />
-        <path d="M4 4v5h5" />
-        <path d="M12 8v4l2.5 2.5" />
+        <path d="M12 4.5a7.5 7.5 0 1 0 0 15 7.5 7.5 0 0 0 0-15Z" />
+        <circle cx="12"   cy="4.5"  r="1.4" />
+        <circle cx="17.3" cy="6.7"  r="1.1" />
+        <circle cx="19.5" cy="12"   r="1.1" />
+        <circle cx="17.3" cy="17.3" r="1.1" />
+        <circle cx="12"   cy="19.5" r="1.1" />
+        <circle cx="6.7"  cy="17.3" r="1.1" />
+        <circle cx="4.5"  cy="12"   r="1.1" />
+        <circle cx="6.7"  cy="6.7"  r="1.1" />
       </svg>
     );
   }
@@ -666,6 +750,8 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
   const [slokaList] = useState<SlokaSummary[]>(initialSlokaList);
   const [selectedSloka, setSelectedSloka] = useState<Sloka>(initialSloka);
   const [homeSearch, setHomeSearch] = useState<string>("");
+  const [globalSearchOpen, setGlobalSearchOpen] = useState<boolean>(false);
+  const [globalSearchQuery, setGlobalSearchQuery] = useState<string>("");
   const [homeDurationMax, setHomeDurationMax] = useState<number | null>(10);
   const [sessionDuration, setSessionDuration] = useState<number>(5);
   const [guidedStart, setGuidedStart] = useState<boolean>(false);
@@ -695,11 +781,13 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
   const [readerFontScale, setReaderFontScale] = useState<number>(DEFAULT_READER_PREFS.fontScale);
   const [readerLanguage, setReaderLanguage] = useState<ReaderLanguage>(DEFAULT_READER_PREFS.language);
   const [showMeaning, setShowMeaning] = useState<boolean>(DEFAULT_READER_PREFS.showMeaning);
+  const [isDarkTheme, setIsDarkTheme] = useState<boolean>(false);
   const [landingSlideIndex, setLandingSlideIndex] = useState<number>(0);
   const [showCompletionPopup, setShowCompletionPopup] = useState<boolean>(false);
   const [completionPromptShown, setCompletionPromptShown] = useState<boolean>(false);
   const homeSearchInputRef = useRef<HTMLInputElement | null>(null);
   const landingTouchStartX = useRef<number | null>(null);
+  const slokaOpenedAt = useRef<number>(0);
 
   const setRoute = useCallback((nextRoute: Route) => {
     setIsSideMenuOpen(false);
@@ -712,6 +800,21 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
     const maxIndex = LANDING_ONBOARDING_STEPS.length - 1;
     setLandingSlideIndex(Math.max(0, Math.min(nextIndex, maxIndex)));
   }, []);
+
+  useEffect(() => {
+    if (route !== "landing") return;
+    if (landingSlideIndex !== 0) return;
+    if (setupProfile.completed) {
+      const timer = window.setTimeout(() => {
+        setRouteState("home");
+      }, 1800);
+      return () => window.clearTimeout(timer);
+    }
+    const timer = window.setTimeout(() => {
+      setLandingSlideIndex(1);
+    }, 2600);
+    return () => window.clearTimeout(timer);
+  }, [route, landingSlideIndex, setupProfile.completed]);
 
   const handleLandingTouchStart = useCallback((event: ReactTouchEvent<HTMLDivElement>) => {
     landingTouchStartX.current = event.touches[0]?.clientX ?? null;
@@ -909,6 +1012,16 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
     if (godsCategory === "all") return slokaList;
     return slokaList.filter((sloka) => sloka.category === godsCategory);
   }, [godsCategory, slokaList]);
+
+  const globalSearchResults = useMemo(() => {
+    const q = globalSearchQuery.trim().toLowerCase();
+    if (q.length < 2) return [];
+    return slokaList.filter((s) =>
+      s.title.toLowerCase().includes(q) ||
+      s.titleTamil.toLowerCase().includes(q) ||
+      s.category.toLowerCase().includes(q)
+    ).slice(0, 12);
+  }, [globalSearchQuery, slokaList]);
 
   const unlockedBadges = useMemo(() => {
     const badges: string[] = [];
@@ -1137,7 +1250,7 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
       setLiveMessage("Notification permission was not granted.");
       return;
     }
-    new Notification("Sloka Sabha Reminder", {
+    new Notification("My Shloka Ritual Reminder", {
       body: `Time to chant ${selectedSloka.title}.`,
     });
     setLiveMessage("Test reminder sent.");
@@ -1164,6 +1277,7 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
         },
       }));
       setSelectedSloka(payload.sloka);
+      slokaOpenedAt.current = Date.now();
       setDetailBackRoute(sourceRoute);
       setRoute("detail");
     } catch {
@@ -1213,9 +1327,11 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
     }
     setShowCompletionPopup(false);
     setCompletionPromptShown(true);
+    setChantCelebrationMessage(`Well done! ${selectedSloka.title} counted.`);
+    setChantCelebrationVisible(true);
+    window.setTimeout(() => setChantCelebrationVisible(false), 2200);
     setLiveMessage(`Marked ${selectedSloka.title} complete.`);
-    setRoute("home");
-  }, [activeChantList, loadSlokaDetail, logChantCount, selectedSloka.id, selectedSloka.lines.length, selectedSloka.title, setRoute, todayDateKey, updateSelectedPractice]);
+  }, [activeChantList, loadSlokaDetail, logChantCount, selectedSloka.id, selectedSloka.lines.length, selectedSloka.title, todayDateKey, updateSelectedPractice]);
 
   const startChantList = useCallback(
     async (listId: string) => {
@@ -1405,6 +1521,10 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
     setReaderLanguage(initialReaderLanguage);
     setShowMeaning(initialShowMeaning);
     setTodayDay(WEEK_DAYS[new Date().getDay()]);
+    const storedTheme = window.localStorage.getItem(STORAGE_KEYS.theme);
+    const dark = storedTheme === "dark";
+    setIsDarkTheme(dark);
+    document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
     setIsHydrated(true);
   }, []);
   /* eslint-enable react-hooks/set-state-in-effect */
@@ -1516,7 +1636,7 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
       if (!shouldNotify) return;
 
       if (Notification.permission === "granted") {
-        new Notification("Sloka Sabha Reminder", {
+        new Notification("My Shloka Ritual Reminder", {
           body: `Time to chant ${selectedSloka.title}.`,
         });
       }
@@ -1545,7 +1665,7 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
       if (!dueList) return;
 
       if (Notification.permission === "granted") {
-        const notification = new Notification("Sloka Sabha Chant List", {
+        const notification = new Notification("My Shloka Ritual Chant List", {
           body: `Time to read ${dueList.name}.`,
         });
         notification.onclick = () => {
@@ -1571,6 +1691,15 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
     return () => window.clearTimeout(timer);
   }, [route]);
 
+  const toggleTheme = useCallback(() => {
+    setIsDarkTheme((prev) => {
+      const next = !prev;
+      document.documentElement.setAttribute("data-theme", next ? "dark" : "light");
+      window.localStorage.setItem(STORAGE_KEYS.theme, next ? "dark" : "light");
+      return next;
+    });
+  }, []);
+
   const autoScrollTiming = useMemo(
     () => getAutoScrollTiming(setupProfile.scrollSpeed, setupProfile.ritualStyle),
     [setupProfile.ritualStyle, setupProfile.scrollSpeed],
@@ -1580,38 +1709,77 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
     if (route !== "detail" || !setupProfile.autoScroll || showCompletionPopup) return;
     if (typeof window === "undefined" || typeof document === "undefined") return;
 
-    const { intervalMs, stepPx } = autoScrollTiming;
+    const { pxPerSecond } = autoScrollTiming;
     const scrollTarget = findVerticalScrollContainer();
-    const timer = window.setInterval(() => {
-      if (!(scrollTarget instanceof HTMLElement)) {
-        const root = document.scrollingElement || document.documentElement;
-        const maxScrollTop = Math.max(0, root.scrollHeight - window.innerHeight);
-        if (root.scrollTop >= maxScrollTop - 4) return;
-        root.scrollTop = Math.min(maxScrollTop, root.scrollTop + stepPx);
+    let rafId = 0;
+    let lastTimestamp = 0;
+    let scrollAccumulator = 0;
+    let pausedUntil = 0;
+
+    const onUserInteract = () => {
+      pausedUntil = performance.now() + 1400;
+    };
+
+    const tick = (now: number) => {
+      if (!lastTimestamp) lastTimestamp = now;
+      const dt = Math.min(64, now - lastTimestamp);
+      lastTimestamp = now;
+
+      if (now < pausedUntil) {
+        rafId = window.requestAnimationFrame(tick);
         return;
       }
 
-      const maxScrollTop = Math.max(0, scrollTarget.scrollHeight - scrollTarget.clientHeight);
-      if (scrollTarget.scrollTop >= maxScrollTop - 4) return;
-      const previousTop = scrollTarget.scrollTop;
-      scrollTarget.scrollTop = Math.min(maxScrollTop, scrollTarget.scrollTop + stepPx);
-
-      // Fallback for layouts where the visual scroll is still on document.
-      if (scrollTarget.scrollTop === previousTop) {
-        const root = document.scrollingElement || document.documentElement;
-        const rootMax = Math.max(0, root.scrollHeight - window.innerHeight);
-        if (root.scrollTop < rootMax - 4) {
-          root.scrollTop = Math.min(rootMax, root.scrollTop + stepPx);
+      scrollAccumulator += (pxPerSecond * dt) / 1000;
+      const stepNow = Math.floor(scrollAccumulator);
+      if (stepNow >= 1) {
+        scrollAccumulator -= stepNow;
+        if (!(scrollTarget instanceof HTMLElement)) {
+          const root = document.scrollingElement || document.documentElement;
+          const maxScrollTop = Math.max(0, root.scrollHeight - window.innerHeight);
+          if (root.scrollTop < maxScrollTop - 2) {
+            root.scrollTop = Math.min(maxScrollTop, root.scrollTop + stepNow);
+          }
+        } else {
+          const maxScrollTop = Math.max(0, scrollTarget.scrollHeight - scrollTarget.clientHeight);
+          if (scrollTarget.scrollTop < maxScrollTop - 2) {
+            const previousTop = scrollTarget.scrollTop;
+            scrollTarget.scrollTop = Math.min(maxScrollTop, scrollTarget.scrollTop + stepNow);
+            if (scrollTarget.scrollTop === previousTop) {
+              const root = document.scrollingElement || document.documentElement;
+              const rootMax = Math.max(0, root.scrollHeight - window.innerHeight);
+              if (root.scrollTop < rootMax - 2) {
+                root.scrollTop = Math.min(rootMax, root.scrollTop + stepNow);
+              }
+            }
+          }
         }
       }
-    }, intervalMs);
 
-    return () => window.clearInterval(timer);
+      rafId = window.requestAnimationFrame(tick);
+    };
+
+    rafId = window.requestAnimationFrame(tick);
+    const interactTarget = scrollTarget instanceof HTMLElement ? scrollTarget : window;
+    interactTarget.addEventListener("wheel", onUserInteract, { passive: true });
+    interactTarget.addEventListener("touchstart", onUserInteract, { passive: true });
+
+    return () => {
+      window.cancelAnimationFrame(rafId);
+      interactTarget.removeEventListener("wheel", onUserInteract);
+      interactTarget.removeEventListener("touchstart", onUserInteract);
+    };
   }, [autoScrollTiming, route, setupProfile.autoScroll, showCompletionPopup]);
 
   const maybeOpenCompletionPopup = useCallback(() => {
     if (route !== "detail" || selectedSlokaDoneToday || showCompletionPopup || completionPromptShown) return;
     if (typeof window === "undefined" || typeof document === "undefined") return;
+
+    // Require minimum time on page: ~6s per line, floor of 25s, ceiling of 120s.
+    // This prevents the popup firing instantly for short slokas.
+    const minMs = Math.min(120_000, Math.max(25_000, selectedSloka.lines.length * 6_000));
+    if (Date.now() - slokaOpenedAt.current < minMs) return;
+
     const scrollTarget = findVerticalScrollContainer();
     const hasReachedEnd = !(scrollTarget instanceof HTMLElement)
       ? (() => {
@@ -1622,23 +1790,22 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
     if (!hasReachedEnd) return;
     setCompletionPromptShown(true);
     setShowCompletionPopup(true);
-  }, [completionPromptShown, route, selectedSlokaDoneToday, showCompletionPopup]);
+  }, [completionPromptShown, route, selectedSloka.lines.length, selectedSlokaDoneToday, showCompletionPopup]);
 
   useEffect(() => {
     if (route !== "detail" || selectedSlokaDoneToday || showCompletionPopup || completionPromptShown) return;
     const scrollTarget = findVerticalScrollContainer();
-    const onScroll = () => {
-      maybeOpenCompletionPopup();
-    };
+    const onScroll = () => maybeOpenCompletionPopup();
     if (scrollTarget instanceof HTMLElement) {
       scrollTarget.addEventListener("scroll", onScroll, { passive: true });
     } else {
       window.addEventListener("scroll", onScroll, { passive: true });
     }
     window.addEventListener("resize", onScroll);
-    const timer = window.setTimeout(onScroll, 180);
+    // Poll every 5 seconds so the popup fires after minMs even without scrolling.
+    const poll = window.setInterval(onScroll, 5_000);
     return () => {
-      window.clearTimeout(timer);
+      window.clearInterval(poll);
       if (scrollTarget instanceof HTMLElement) {
         scrollTarget.removeEventListener("scroll", onScroll);
       } else {
@@ -1694,8 +1861,8 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
                 🎉
               </div>
               <h3>Great Job</h3>
-              <p>{chantCelebrationMessage || "You completed your chant list."}</p>
-              <small>Taking you back home...</small>
+              <p>{chantCelebrationMessage || "Chant counted."}</p>
+              <small>Keep chanting or go back whenever you&apos;re ready.</small>
             </article>
           </div>
         )}
@@ -1885,20 +2052,38 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
                           <span className="setup-first-card-arrow" aria-hidden="true">{"\u203a"}</span>
                         </article>
                       </div>
-                      <p className="setup-first-note">You can set up a ritual anytime from the Profile section.</p>
+                      <p className="setup-first-note"><span aria-hidden="true" className="setup-first-note-check">✓</span> You can set up a ritual anytime from the Profile section.</p>
                     </div>
                   ) : (
                     <div className="setup-wizard">
                       <header className="setup-wizard-header">
-                        <button className="icon-button setup-back-button" onClick={goToPreviousSetupStep} type="button">
-                          <BackGlyph />
-                        </button>
-                        <p className="setup-wizard-step">{`Step ${setupProgressStep} of 4`}</p>
-                        <div className="setup-wizard-progress" aria-label={`Step ${setupProgressStep} of 4`}>
-                          {Array.from({ length: 4 }, (_, index) => (
-                            <span className={index < setupProgressStep ? "active" : ""} key={`setup-step-${index + 1}`} />
-                          ))}
-                        </div>
+                        {setupStep === 1 ? (
+                          <div className="setup-wizard-brand-identity">
+                            <Image alt="" aria-hidden="true" className="setup-wizard-brand-mark" height={760} sizes="52px" src={BRAND_MARK_SRC} unoptimized width={760} />
+                            <div>
+                              <strong>My Shloka Ritual</strong>
+                              <span className="setup-wizard-tagline">Daily chants for inner calm</span>
+                            </div>
+                          </div>
+                        ) : (
+                          <button className="icon-button setup-back-button" onClick={goToPreviousSetupStep} type="button">
+                            <BackGlyph />
+                          </button>
+                        )}
+                        {setupStep === 1 ? (
+                          <div className="setup-wizard-dots" aria-label="Onboarding step 1 of 3">
+                            <span className="active" /><span /><span />
+                          </div>
+                        ) : (
+                          <>
+                            <p className="setup-wizard-step">{`Step ${setupProgressStep} of 4`}</p>
+                            <div className="setup-wizard-progress" aria-label={`Step ${setupProgressStep} of 4`}>
+                              {Array.from({ length: 4 }, (_, index) => (
+                                <span className={index < setupProgressStep ? "active" : ""} key={`setup-step-${index + 1}`} />
+                              ))}
+                            </div>
+                          </>
+                        )}
                         <h3>
                           {setupStep === 1
                             ? "Welcome! Let's get started."
@@ -1922,9 +2107,15 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
                       {setupStep === 1 && (
                         <div className="setup-wizard-body">
                           <article className="setup-panel">
-                            <label className="field-label light" htmlFor="setup-name">
-                              What should we call you?
-                            </label>
+                            <div className="setup-panel-label-row">
+                              <svg aria-hidden="true" className="setup-panel-icon" fill="none" height="18" stroke="#1f5d3a" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.75" viewBox="0 0 24 24" width="18">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
+                              </svg>
+                              <div>
+                                <label className="field-label light" htmlFor="setup-name">What should we call you?</label>
+                                <span className="setup-panel-helper">This will be used to personalise your experience.</span>
+                              </div>
+                            </div>
                             <input
                               autoComplete="name"
                               className="start-modal-input"
@@ -1935,21 +2126,46 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
                             />
                           </article>
                           <article className="setup-panel">
-                            <h4>Set your daily goals</h4>
+                            <div className="setup-panel-title-wrap">
+                              <h4>Set your daily goals</h4>
+                              <span className="setup-panel-helper">These goals will help you build a consistent ritual.</span>
+                            </div>
                             <div className="setup-counter-row">
-                              <span>Daily chant count target</span>
-                              <div className="setup-counter">
-                                <button onClick={() => updateSetupProfile({ dailyGoal: Math.max(1, setupProfile.dailyGoal - 1) })} type="button">-</button>
-                                <strong>{setupProfile.dailyGoal}</strong>
-                                <button onClick={() => updateSetupProfile({ dailyGoal: Math.min(108, setupProfile.dailyGoal + 1) })} type="button">+</button>
+                              <div className="setup-counter-label">
+                                <svg aria-hidden="true" className="setup-panel-icon" fill="none" height="16" stroke="#1f5d3a" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.75" viewBox="0 0 24 24" width="16">
+                                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                                </svg>
+                                <div>
+                                  <span>Daily chant count target</span>
+                                  <span className="setup-counter-helper">How many slokas do you want to chant each day?</span>
+                                </div>
+                              </div>
+                              <div className="setup-counter-with-unit">
+                                <div className="setup-counter">
+                                  <button onClick={() => updateSetupProfile({ dailyGoal: Math.max(1, setupProfile.dailyGoal - 1) })} type="button">−</button>
+                                  <strong>{setupProfile.dailyGoal}</strong>
+                                  <button onClick={() => updateSetupProfile({ dailyGoal: Math.min(108, setupProfile.dailyGoal + 1) })} type="button">+</button>
+                                </div>
+                                <span className="setup-counter-unit">chants</span>
                               </div>
                             </div>
                             <div className="setup-counter-row">
-                              <span>Daily time target</span>
-                              <div className="setup-counter">
-                                <button onClick={() => updateSetupProfile({ dailyMinutes: Math.max(5, setupProfile.dailyMinutes - 5) })} type="button">-</button>
-                                <strong>{setupProfile.dailyMinutes}</strong>
-                                <button onClick={() => updateSetupProfile({ dailyMinutes: Math.min(180, setupProfile.dailyMinutes + 5) })} type="button">+</button>
+                              <div className="setup-counter-label">
+                                <svg aria-hidden="true" className="setup-panel-icon" fill="none" height="16" stroke="#1f5d3a" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.75" viewBox="0 0 24 24" width="16">
+                                  <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+                                </svg>
+                                <div>
+                                  <span>Daily time target</span>
+                                  <span className="setup-counter-helper">How much time do you want to spend chanting each day?</span>
+                                </div>
+                              </div>
+                              <div className="setup-counter-with-unit">
+                                <div className="setup-counter">
+                                  <button onClick={() => updateSetupProfile({ dailyMinutes: Math.max(5, setupProfile.dailyMinutes - 5) })} type="button">−</button>
+                                  <strong>{setupProfile.dailyMinutes}</strong>
+                                  <button onClick={() => updateSetupProfile({ dailyMinutes: Math.min(180, setupProfile.dailyMinutes + 5) })} type="button">+</button>
+                                </div>
+                                <span className="setup-counter-unit">minutes</span>
                               </div>
                             </div>
                           </article>
@@ -2119,13 +2335,22 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
 
                       <div className="start-modal-actions">
                         {setupStep < 4 ? (
-                          <button className="landing-start-button" onClick={goToNextSetupStep} type="button">
+                          <button className="landing-start-button setup-continue-pill" onClick={goToNextSetupStep} type="button">
                             Continue
+                            <svg aria-hidden="true" fill="none" height="18" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" viewBox="0 0 24 24" width="18">
+                              <path d="M5 12h14M12 5l7 7-7 7" />
+                            </svg>
                           </button>
                         ) : (
-                          <button className="landing-start-button" onClick={completeSetupFlow} type="button">
+                          <button className="landing-start-button setup-continue-pill" onClick={completeSetupFlow} type="button">
                             Complete Setup
+                            <svg aria-hidden="true" fill="none" height="18" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" viewBox="0 0 24 24" width="18">
+                              <path d="M5 12h14M12 5l7 7-7 7" />
+                            </svg>
                           </button>
+                        )}
+                        {setupStep === 1 && (
+                          <p className="setup-settings-note">You can change this anytime in Settings</p>
                         )}
                       </div>
                     </div>
@@ -2137,240 +2362,144 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
         )}
 
         {route === "home" && (
-          <section className="screen active">
-            <section className="ritual-home-hero" aria-label="My Shloka Ritual home">
-              <div>
-                <p className="ritual-eyebrow">{`${dayGreeting}, ${setupProfile.name || "Asha"}`}</p>
+          <section className="screen active home-screen">
+            {/* ── Hero ── */}
+            <header className="home-hero">
+              <span className="home-hero-om" aria-hidden="true">ॐ</span>
+              <div className="home-hero-copy">
+                <h1 className="home-greeting">{`${dayGreeting}, ${setupProfile.name || "Asha"}`}</h1>
+                <p className="home-subtitle">
+                  {isDailyTargetCompleted
+                    ? "You've completed today's ritual 🙏"
+                    : "Begin your spiritual journey today"}
+                </p>
               </div>
-            </section>
+              <button
+                className="home-hero-bell"
+                onClick={() => setRoute("profile")}
+                title="Profile & Settings"
+                type="button"
+                aria-label="Profile"
+              >
+                <svg aria-hidden="true" fill="none" height="22" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" viewBox="0 0 24 24" width="22">
+                  <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+                </svg>
+              </button>
+            </header>
 
-            {setupProfile.completed ? (
-              <>
-                <article className="event-card ritual-progress-board">
-                  <div className="section-heading compact">
-                    <h2>Today&apos;s Progress</h2>
-                    <button className="secondary-button ritual-mini-inline" onClick={() => setRoute("sessions")} type="button">
-                      View All
-                    </button>
+            {/* ── Today's Ritual card (setup complete only) ── */}
+            {setupProfile.completed && (
+              <article className="home-ritual-card" onClick={() => setRoute("sessions")} role="button" tabIndex={0} aria-label="View session progress">
+                <div className="hrc-header">
+                  <span className="hrc-label">{"Today’s Ritual"}</span>
+                  <span className="hrc-header-right">
+                    <span className="hrc-day">{todayDay}</span>
+                    <span className="hrc-nav-arrow">{"›"}</span>
+                  </span>
+                </div>
+                <div className="hrc-stats">
+                  <div className="hrc-stat">
+                    <strong>{chantProgress.dailyCount}<em>{"/"}{chantProgress.dailyTarget}</em></strong>
+                    <span>Chants</span>
                   </div>
-                  <p className="mini-muted">Your progress toward today&apos;s goals</p>
-                  <div className="ritual-progress-rings">
-                    <div className="ritual-progress-item">
-                      <span className="ritual-progress-label">Chant Count</span>
-                      <div
-                        className="ritual-goal-ring ritual-goal-ring-large"
-                        aria-label={`Daily chant progress ${dailyProgressPercent}%`}
-                        style={{ ["--progress" as string]: `${dailyProgressPercent}%` } as CSSProperties}
-                      >
-                        <strong>{chantProgress.dailyCount}</strong>
-                        <small>{`/ ${chantProgress.dailyTarget}`}</small>
-                      </div>
-                      <p>{`Target: ${chantProgress.dailyTarget} chants`}</p>
-                    </div>
-                    <div className="ritual-progress-item">
-                      <span className="ritual-progress-label amber">Chant Time</span>
-                      <div
-                        className="ritual-time-ring ritual-goal-ring-large"
-                        aria-label={`Daily time progress ${dailyTimeProgressPercent}%`}
-                        style={{ ["--progress" as string]: `${dailyTimeProgressPercent}%` } as CSSProperties}
-                      >
-                        <strong>{dailyMinutesDisplay}</strong>
-                        <small>{`/ ${dailyTimeTargetMinutes}`}</small>
-                      </div>
-                      <p>{`Target: ${dailyTimeTargetMinutes} min`}</p>
-                    </div>
+                  <div className="hrc-sep" />
+                  <div className="hrc-stat">
+                    <strong>{dailyMinutesDisplay}<em>{"m"}</em></strong>
+                    <span>{"of "}{dailyTimeTargetMinutes}{"m time"}</span>
                   </div>
-                  <div className="ritual-progress-footer">
-                    <div>
-                      <strong>{chantProgress.dailyCount}</strong>
-                      <small>Total Chants</small>
-                    </div>
-                    <div>
-                      <strong>{`${dailyMinutesDisplay} min`}</strong>
-                      <small>Total Time</small>
-                    </div>
-                    <div>
-                      <strong>{chantProgress.streakDays}</strong>
-                      <small>Day Streak</small>
-                    </div>
-                  </div>
-                </article>
-
-                <article className="event-card ritual-recent-activity-card">
-                  <div className="section-heading compact">
-                    <h2>Recent Activity</h2>
-                    <button className="secondary-button ritual-mini-inline" onClick={() => setRoute("library")} type="button">
-                      View All
-                    </button>
-                  </div>
-                  <div className="ritual-activity-list">
-                    {recentActivityItems.map((item) => {
-                      const activitySloka = slokaList.find((sloka) => sloka.id === item.id);
-                      if (!activitySloka) return null;
-                      return (
-                        <button className="ritual-activity-row" key={`recent-${item.id}`} onClick={() => void loadSlokaDetail(item.id, "home")} type="button">
-                          <SlokaTile sloka={activitySloka} />
-                          <span>
-                            <strong>{item.title}</strong>
-                            <small>{item.meta}</small>
-                          </span>
-                          <span className="ritual-activity-chevron">{">"}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </article>
-              </>
-            ) : (
-              <>
-                <article className="event-card ritual-dashboard-card">
-                  <div className="ritual-stat-block">
-                    <span className="ritual-stat-label">Daily Streak</span>
+                  <div className="hrc-sep" />
+                  <div className="hrc-stat">
                     <strong>{chantProgress.streakDays}</strong>
-                    <small>days</small>
+                    <span>{"Day streak 🔥"}</span>
                   </div>
-                  <div
-                    className="ritual-goal-ring"
-                    aria-label={`Today goal ${dailyProgressPercent}% complete`}
-                    style={{ ["--progress" as string]: `${dailyProgressPercent}%` } as CSSProperties}
-                  >
-                    <Image
-                      alt=""
-                      aria-hidden="true"
-                      className="ritual-goal-mark"
-                      height={610}
-                      src={BRAND_MARK_SRC}
-                      unoptimized
-                      width={760}
-                    />
+                </div>
+                <div className="hrc-track-wrap">
+                  <div className="hrc-track">
+                    <div className="hrc-fill" style={{ width: `${dailyProgressPercent}%` }} />
                   </div>
-                  <div className="ritual-stat-block right">
-                    <span className="ritual-stat-label">Today&apos;s Goal</span>
-                    <strong>{chantProgress.dailyTarget}</strong>
-                    <small>chants</small>
-                    <button className="ritual-mini-pill" onClick={() => setRoute("sessions")} type="button">
-                      Edit Goal
-                    </button>
-                  </div>
-                </article>
-
-                <article className="ritual-quote-card">
-                  <p>Let the divine words sustain your mind and soothe your soul.</p>
-                  <span aria-hidden="true" />
-                </article>
-              </>
+                  <span className="hrc-pct">{dailyProgressPercent}{"%"}</span>
+                </div>
+              </article>
             )}
 
-            <article className="event-card dashboard-top-search">
-              <label className="field-label" htmlFor="dashboard-search">
-                Search Sloka
-              </label>
+            {/* ── Featured sloka (today's recommendation or popular fallback) ── */}
+            {(() => {
+              const featured = todayRecommendedSlokas[0] ?? popularSlokas[0];
+              const isToday = todayRecommendedSlokas.length > 0;
+              if (!featured) return null;
+              return (
+                <article className="home-featured-card">
+                  <div className="home-featured-label">
+                    <span className="home-featured-badge">{isToday ? `Today — ${todayDay}` : "Featured"}</span>
+                  </div>
+                  <button
+                    className="home-featured-sloka"
+                    onClick={() => void loadSlokaDetail(featured.id, "home")}
+                    type="button"
+                  >
+                    <div className="home-featured-img-wrap">
+                      <Image
+                        alt={featured.category}
+                        className={`home-featured-img ${featured.category === "Hanuman" ? "hanuman-deity-image" : ""}`}
+                        height={56}
+                        sizes="56px"
+                        src={featured.category === "Hanuman" ? HANUMAN_ICON_SRC : DEITY_PHOTOS[featured.category] ?? DEITY_PHOTOS.Shiva}
+                        unoptimized
+                        width={56}
+                      />
+                    </div>
+                    <div className="home-featured-text">
+                      <strong>{featured.title}</strong>
+                      <span>{featured.category} · {featured.duration}</span>
+                    </div>
+                    <div className="home-featured-cta">Chant Now</div>
+                  </button>
+                </article>
+              );
+            })()}
+
+            {/* ── Search ── */}
+            <div className="home-search-wrap">
+              <svg aria-hidden="true" className="home-search-icon" fill="none" height="16" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" width="16"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/></svg>
               <input
                 autoComplete="off"
-                className="search-input"
+                className="home-search-input"
                 id="dashboard-search"
                 ref={homeSearchInputRef}
                 onChange={(event) => setHomeSearch(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Tab" && homeSuggestions[0]) {
-                    event.preventDefault();
-                    setHomeSearch(homeSuggestions[0].value);
-                  }
-                }}
-                placeholder="Search sloka name, deity, or Tamil text"
+                placeholder="Search sloka, deity or Tamil…"
                 value={homeSearch}
               />
+              {homeSearch.trim().length > 0 && (
+                <button className="home-search-clear" onClick={() => setHomeSearch("")} type="button" aria-label="Clear">✕</button>
+              )}
               {homeSuggestions.length > 0 && (
                 <div className="search-suggestions" role="listbox">
                   {homeSuggestions.map((suggestion) => (
                     <button
                       className="search-suggestion"
-                      key={`dashboard-suggestion-${suggestion.value}`}
-                      onClick={() => {
-                        setHomeSearch(suggestion.value);
-                        homeSearchInputRef.current?.focus();
-                      }}
+                      key={`suggestion-${suggestion.value}`}
+                      onClick={() => { setHomeSearch(suggestion.value); }}
                       type="button"
-                    >
-                      {suggestion.value}
-                    </button>
+                    >{suggestion.value}</button>
                   ))}
                 </div>
               )}
-            </article>
+            </div>
 
-            <article className="event-card greeting-card ritual-legacy-greeting">
-              <h2>Namaste 🙏</h2>
-              <p>Begin your day with divine chants.</p>
-            </article>
-
-            <article className="event-card journey-card ritual-continue-card">
-              <div className="section-heading compact">
-                <h2>Continue Your Journey</h2>
-                <span className="badge">Today</span>
-              </div>
-              <p>{selectedSloka.titleTamil}</p>
-              <div className="journey-progress-row">
-                <div className="journey-linear">
-                  <span style={{ width: `${dailyProgressPercent}%` }} />
-                </div>
-                <div
-                  className="journey-ring"
-                  aria-label={`Daily progress ${dailyProgressPercent}%`}
-                  style={{ ["--progress" as string]: `${dailyProgressPercent}%` } as CSSProperties}
-                >
-                  <strong>{dailyProgressPercent}%</strong>
-                </div>
-              </div>
-              <p className={`journey-status ${isDailyTargetCompleted ? "completed" : ""}`}>
-                {isDailyTargetCompleted
-                  ? `Completed today (${chantProgress.dailyCount}/${chantProgress.dailyTarget})`
-                  : `${remainingDailyChants} chants remaining today (${chantProgress.dailyCount}/${chantProgress.dailyTarget})`}
-              </p>
-              <div className="journey-actions">
-                <button className="secondary-button" onClick={() => logChantCount(selectedSloka.id, 1)} type="button">
-                  +1 Chant Done
-                </button>
-                <button className="secondary-button" onClick={() => setRoute("sessions")} type="button">
-                  Open Tracker
-                </button>
-              </div>
-            </article>
-
-            {!setupProfile.completed && (
-              <article className="event-card ritual-stats-card">
-                <div>
-                  <small>Total Chants</small>
-                  <strong>{chantProgress.totalCount.toLocaleString()}</strong>
-                </div>
-                <div>
-                  <small>Favorites</small>
-                  <strong>{favorites.size}</strong>
-                </div>
-                <div>
-                  <small>Done Days</small>
-                  <strong>{recentCalendarDays.filter((day) => day.completedCount > 0).length}</strong>
-                </div>
-              </article>
-            )}
-
-            <article className="event-card">
-              <div className="section-heading compact">
-                <h2>Start Chanting</h2>
-              </div>
+            {/* ── Deity quick-start ── */}
+            <article className="home-section-card">
+              <h2 className="home-section-title">Chant by Deity</h2>
               <div className="deity-quick-row" role="list" aria-label="Quick deity selection">
-                {deityHighlights.slice(0, 8).map((deity) => (
+                {deityHighlights.slice(0, 10).map((deity) => (
                   <button
                     className="deity-quick-chip"
                     key={`quick-${deity.category}`}
-                    onClick={() => {
-                      setGodsCategory(deity.category);
-                      setRoute("gods");
-                    }}
+                    onClick={() => { setGodsCategory(deity.category); setRoute("gods"); }}
                     type="button"
                   >
                     <Image
-                      alt={`${deity.category} icon`}
+                      alt={deity.category}
                       className={`deity-quick-image ${deity.category === "Hanuman" ? "hanuman-deity-image" : ""}`}
                       height={42}
                       sizes="42px"
@@ -2424,31 +2553,33 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
                   <h2>{homeSearch.trim().length > 0 ? "Search Results" : "Suggested Results"}</h2>
                 </div>
                 <div className="sloka-list">
-                  {homeResults.map((sloka) => (
-                    <article className="event-card" key={`home-result-${sloka.id}`}>
-                      <button className="sloka-row" onClick={() => void loadSlokaDetail(sloka.id, "home")} type="button">
+                  {(homeSearch.trim().length > 0 ? homeResults : homeResults.slice(0, 5)).map((sloka) => (
+                    <article className="sloka-card" key={`home-result-${sloka.id}`}>
+                      <button className="sloka-card-btn" onClick={() => void loadSlokaDetail(sloka.id, "home")} type="button">
                         <SlokaTile sloka={sloka} />
-                        <span>
+                        <div className="sloka-card-text">
                           <strong>{sloka.title}</strong>
-                          <small>{sloka.titleTamil} | {sloka.category} | {sloka.lineCount} lines</small>
-                        </span>
-                        <span>{">"}</span>
+                          <small>{sloka.titleTamil} · {sloka.category} · {sloka.duration}</small>
+                        </div>
+                        <span className="sloka-card-arrow">{"›"}</span>
                       </button>
-                      <div className="meta-row">
-                        <span className="mini-muted">{sloka.duration}</span>
-                        <button
-                          aria-label={favorites.has(sloka.id) ? `Remove ${sloka.title} from favorites` : `Add ${sloka.title} to favorites`}
-                          className={`favorite-icon-button ${favorites.has(sloka.id) ? "active" : ""}`}
-                          onClick={() => toggleFavorite(sloka.id)}
-                          title={favorites.has(sloka.id) ? "Remove favorite" : "Add favorite"}
-                          type="button"
-                        >
-                          <FavoriteGlyph active={favorites.has(sloka.id)} />
-                        </button>
-                      </div>
+                      <button
+                        aria-label={favorites.has(sloka.id) ? `Remove ${sloka.title} from favorites` : `Add ${sloka.title} to favorites`}
+                        className={`sloka-card-fav favorite-icon-button ${favorites.has(sloka.id) ? "active" : ""}`}
+                        onClick={() => toggleFavorite(sloka.id)}
+                        title={favorites.has(sloka.id) ? "Remove favorite" : "Add favorite"}
+                        type="button"
+                      >
+                        <FavoriteGlyph active={favorites.has(sloka.id)} />
+                      </button>
                     </article>
                   ))}
                 </div>
+                {!homeSearch.trim() && homeResults.length > 5 && (
+                  <button className="see-more-link" onClick={() => setRoute("library")} type="button">
+                    See more <span aria-hidden="true">›</span>
+                  </button>
+                )}
                 {homeResults.length === 0 && (
                   <article className="event-card">
                     <h3>No matches found</h3>
@@ -2473,27 +2604,24 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
                 ) : (
                   <div className="sloka-list">
                     {popularSlokas.map((sloka) => (
-                      <article className="event-card" key={`popular-${sloka.id}`}>
-                        <button className="sloka-row" onClick={() => void loadSlokaDetail(sloka.id, "home")} type="button">
+                      <article className="sloka-card" key={`popular-${sloka.id}`}>
+                        <button className="sloka-card-btn" onClick={() => void loadSlokaDetail(sloka.id, "home")} type="button">
                           <SlokaTile sloka={sloka} />
-                          <span>
+                          <div className="sloka-card-text">
                             <strong>{sloka.title}</strong>
-                            <small>{sloka.titleTamil} | {sloka.category} | {sloka.lineCount} lines</small>
-                          </span>
-                          <span>{">"}</span>
+                            <small>{sloka.titleTamil} · {sloka.category} · {sloka.duration}</small>
+                          </div>
+                          <span className="sloka-card-arrow">{"›"}</span>
                         </button>
-                        <div className="meta-row">
-                          <span className="mini-muted">{sloka.duration}</span>
-                          <button
-                            aria-label={favorites.has(sloka.id) ? `Remove ${sloka.title} from favorites` : `Add ${sloka.title} to favorites`}
-                            className={`favorite-icon-button ${favorites.has(sloka.id) ? "active" : ""}`}
-                            onClick={() => toggleFavorite(sloka.id)}
-                            title={favorites.has(sloka.id) ? "Remove favorite" : "Add favorite"}
-                            type="button"
-                          >
-                            <FavoriteGlyph active={favorites.has(sloka.id)} />
-                          </button>
-                        </div>
+                        <button
+                          aria-label={favorites.has(sloka.id) ? `Remove ${sloka.title} from favorites` : `Add ${sloka.title} to favorites`}
+                          className={`sloka-card-fav favorite-icon-button ${favorites.has(sloka.id) ? "active" : ""}`}
+                          onClick={() => toggleFavorite(sloka.id)}
+                          title={favorites.has(sloka.id) ? "Remove favorite" : "Add favorite"}
+                          type="button"
+                        >
+                          <FavoriteGlyph active={favorites.has(sloka.id)} />
+                        </button>
                       </article>
                     ))}
                   </div>
@@ -3131,27 +3259,24 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
             ) : (
               <div className="sloka-list">
                 {filteredSlokas.map((sloka) => (
-                  <article className="event-card" key={`library-${sloka.id}`}>
-                    <button className="sloka-row" onClick={() => void loadSlokaDetail(sloka.id, "library")} type="button">
+                  <article className="sloka-card" key={`library-${sloka.id}`}>
+                    <button className="sloka-card-btn" onClick={() => void loadSlokaDetail(sloka.id, "library")} type="button">
                       <SlokaTile sloka={sloka} />
-                      <span>
+                      <div className="sloka-card-text">
                         <strong>{sloka.title}</strong>
-                        <small>{sloka.titleTamil} | {sloka.category} | {sloka.duration}</small>
-                      </span>
-                      <span>{">"}</span>
+                        <small>{sloka.titleTamil} · {sloka.category} · {sloka.duration}</small>
+                      </div>
+                      <span className="sloka-card-arrow">{"›"}</span>
                     </button>
-                    <div className="meta-row">
-                      <span className="mini-muted">{sloka.lineCount} lines</span>
-                      <button
-                        aria-label={favorites.has(sloka.id) ? `Remove ${sloka.title} from favorites` : `Add ${sloka.title} to favorites`}
-                        className={`favorite-icon-button ${favorites.has(sloka.id) ? "active" : ""}`}
-                        onClick={() => toggleFavorite(sloka.id)}
-                        title={favorites.has(sloka.id) ? "Remove favorite" : "Add favorite"}
-                        type="button"
-                      >
-                        <FavoriteGlyph active={favorites.has(sloka.id)} />
-                      </button>
-                    </div>
+                    <button
+                      aria-label={favorites.has(sloka.id) ? `Remove ${sloka.title} from favorites` : `Add ${sloka.title} to favorites`}
+                      className={`sloka-card-fav favorite-icon-button ${favorites.has(sloka.id) ? "active" : ""}`}
+                      onClick={() => toggleFavorite(sloka.id)}
+                      title={favorites.has(sloka.id) ? "Remove favorite" : "Add favorite"}
+                      type="button"
+                    >
+                      <FavoriteGlyph active={favorites.has(sloka.id)} />
+                    </button>
                   </article>
                 ))}
               </div>
@@ -3191,27 +3316,24 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
 
             <div className="sloka-list">
               {filteredFavorites.map((sloka) => (
-                <article className="event-card" key={`favorite-${sloka.id}`}>
-                  <button className="sloka-row" onClick={() => void loadSlokaDetail(sloka.id, "favorites")} type="button">
+                <article className="sloka-card" key={`favorite-${sloka.id}`}>
+                  <button className="sloka-card-btn" onClick={() => void loadSlokaDetail(sloka.id, "favorites")} type="button">
                     <SlokaTile sloka={sloka} />
-                    <span>
+                    <div className="sloka-card-text">
                       <strong>{sloka.title}</strong>
-                      <small>{sloka.titleTamil} | {sloka.category}</small>
-                    </span>
-                    <span>{">"}</span>
+                      <small>{sloka.titleTamil} · {sloka.category} · {sloka.duration}</small>
+                    </div>
+                    <span className="sloka-card-arrow">{"›"}</span>
                   </button>
-                  <div className="meta-row">
-                    <span className="mini-muted">{sloka.duration}</span>
-                    <button
-                      aria-label={`Remove ${sloka.title} from favorites`}
-                      className="favorite-icon-button active"
-                      onClick={() => toggleFavorite(sloka.id)}
-                      title="Remove favorite"
-                      type="button"
-                    >
-                      <FavoriteGlyph active />
-                    </button>
-                  </div>
+                  <button
+                    aria-label={`Remove ${sloka.title} from favorites`}
+                    className="sloka-card-fav favorite-icon-button active"
+                    onClick={() => toggleFavorite(sloka.id)}
+                    title="Remove favorite"
+                    type="button"
+                  >
+                    <FavoriteGlyph active />
+                  </button>
                 </article>
               ))}
             </div>
@@ -3301,6 +3423,27 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
                 </button>
               </div>
             </article>
+
+            <article className="event-card">
+              <h3>Appearance</h3>
+              <p className="mini-muted">Switch between the calm day theme and a restful dark mode.</p>
+              <div className="profile-language-grid" style={{ marginTop: "12px" }}>
+                <button
+                  className={`switch-button ${!isDarkTheme ? "active" : ""}`}
+                  onClick={() => { if (isDarkTheme) toggleTheme(); }}
+                  type="button"
+                >
+                  ☀ Day
+                </button>
+                <button
+                  className={`switch-button ${isDarkTheme ? "active" : ""}`}
+                  onClick={() => { if (!isDarkTheme) toggleTheme(); }}
+                  type="button"
+                >
+                  ☽ Night
+                </button>
+              </div>
+            </article>
           </section>
         )}
 
@@ -3313,7 +3456,44 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
                     <BackGlyph />
                   </button>
                   <span className="ref-player-header-spacer" aria-hidden="true" />
-                  <span className="ref-player-header-spacer" aria-hidden="true" />
+                  <button
+                    className="ref-player-header-icon"
+                    title="Search slokas"
+                    type="button"
+                    onClick={() => setGlobalSearchOpen(true)}
+                  >
+                    <svg aria-hidden="true" fill="none" height="20" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" viewBox="0 0 24 24" width="20"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/></svg>
+                  </button>
+                  <button
+                    className="ref-player-header-icon"
+                    title="Share this sloka"
+                    type="button"
+                    onClick={() => {
+                      const preview = selectedSloka.lines.slice(0, 3)
+                        .map((l) => l.english)
+                        .join("\n");
+                      const appUrl = "https://myshlokasritual.app";
+                      const text = [
+                        `🪔 ${selectedSloka.title}`,
+                        `\n${preview}\n...`,
+                        `\nChanting daily brings inner calm.`,
+                        `\nDownload My Shloka Ritual 👉 ${appUrl}`,
+                        `\n#MyShlokasRitual #DailyChanting #${selectedSloka.category}`,
+                      ].join("\n");
+                      if (typeof navigator !== "undefined" && navigator.share) {
+                        void navigator.share({ title: `${selectedSloka.title} — My Shloka Ritual`, text, url: appUrl });
+                      } else {
+                        void navigator.clipboard?.writeText(text).then(() =>
+                          setLiveMessage("Sloka copied — paste to share!")
+                        );
+                      }
+                    }}
+                  >
+                    <svg aria-hidden="true" fill="none" height="20" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" viewBox="0 0 24 24" width="20">
+                      <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+                      <line x1="8.59" x2="15.42" y1="13.51" y2="17.49"/><line x1="15.41" x2="8.59" y1="6.51" y2="10.49"/>
+                    </svg>
+                  </button>
                 </header>
 
                 <PlayerHeroCard
@@ -3335,19 +3515,43 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
               />
               <div className="ref-player-bottom-divider" aria-hidden="true" />
 
-              {!selectedSlokaDoneToday && <p className="detail-scroll-hint">Scroll to the end to mark this chant complete.</p>}
+              {selectedSlokaDoneToday ? (
+                <div className="detail-chant-status done">
+                  <div className="dcs-icon" aria-hidden="true">✓</div>
+                  <div className="dcs-text">
+                    <strong>Chanted today</strong>
+                    <span>{chantProgress.dailyCount} of {chantProgress.dailyTarget} chants done</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="detail-chant-status pending">
+                  <button
+                    className="dcs-mark-btn"
+                    onClick={markSelectedSlokaComplete}
+                    type="button"
+                  >
+                    <span aria-hidden="true">🙏</span>
+                    I&apos;ve chanted this
+                  </button>
+                  <span className="dcs-hint">{chantProgress.dailyCount} / {chantProgress.dailyTarget} chants today</span>
+                </div>
+              )}
 
               <ReaderControls
+                activeLineIndex={selectedPractice.activeLineIndex}
                 autoScroll={setupProfile.autoScroll}
                 language={readerLanguage}
                 onDecreaseFont={decreaseReaderFontScale}
                 onIncreaseFont={increaseReaderFontScale}
+                onNextLine={() => setActivePracticeLine(selectedPractice.activeLineIndex + 1)}
+                onPrevLine={() => setActivePracticeLine(selectedPractice.activeLineIndex - 1)}
                 onSetScrollSpeed={(speed) => updateSetupProfile({ scrollSpeed: speed })}
                 onSetLanguage={setReaderLanguage}
                 onToggleAutoScroll={() => updateSetupProfile({ autoScroll: !setupProfile.autoScroll })}
                 onToggleMeaning={() => setShowMeaning((value) => !value)}
                 scrollSpeed={setupProfile.scrollSpeed}
                 showMeaning={showMeaning}
+                totalLines={selectedSloka.lines.length}
               />
             </article>
 
@@ -3365,8 +3569,8 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
                   <div className="sloka-completion-crest" aria-hidden="true">
                     <span>&#10003;</span>
                   </div>
-                  <h3>Completed this chant?</h3>
-                  <p>You reached the end of the sloka. Mark as done only if you have completed chanting.</p>
+                  <h3>Chant complete</h3>
+                  <p>You&apos;ve reached the end of this sloka. Count it toward today&apos;s ritual?</p>
                   <div className="sloka-completion-actions">
                     <button
                       className="primary-button"
@@ -3375,7 +3579,7 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
                       }}
                       type="button"
                     >
-                      Yes, Mark as Done
+                      Mark as done
                     </button>
                     <button
                       className="secondary-button"
@@ -3384,17 +3588,7 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
                       }}
                       type="button"
                     >
-                      Not Yet
-                    </button>
-                    <button
-                      className="sloka-completion-link"
-                      onClick={() => {
-                        setShowCompletionPopup(false);
-                        setRoute("library");
-                      }}
-                      type="button"
-                    >
-                      Back to Library
+                      Keep chanting
                     </button>
                   </div>
                 </article>
@@ -3425,26 +3619,28 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
         )}
       </main>
       {route !== "landing" && route !== "detail" && (
-        <nav className="floating-dock" aria-label="Bottom Navigation">
-          <button className={route === "home" ? "active" : ""} onClick={() => setRoute("home")} type="button" title="Home">
-            <RitualNavIcon name="home" />
-            <span className="dock-label">Home</span>
+        <nav className="app-bottom-nav" aria-label="Bottom Navigation">
+          <button className={`abn-tab ${route === "home" ? "active" : ""}`} onClick={() => setRoute("home")} type="button">
+            <span className="abn-icon"><RitualNavIcon name="home" /></span>
+            <span className="abn-label">Home</span>
           </button>
-          <button className={route === "library" ? "active" : ""} onClick={() => setRoute("library")} type="button" title="Chants">
-            <RitualNavIcon name="chants" />
-            <span className="dock-label">Chants</span>
+          <button className={`abn-tab ${route === "gods" || route === "library" ? "active" : ""}`} onClick={() => setRoute("gods")} type="button">
+            <span className="abn-icon"><RitualNavIcon name="chants" /></span>
+            <span className="abn-label">Explore</span>
           </button>
-          <button className={route === "sessions" ? "active" : ""} onClick={() => setRoute("sessions")} type="button" title="Counter">
-            <RitualNavIcon name="counter" />
-            <span className="dock-label">Counter</span>
+          <button className={`abn-tab abn-tab-center ${route === "sessions" ? "active" : ""}`} onClick={() => setRoute("sessions")} type="button">
+            <span className="abn-icon"><RitualNavIcon name="counter" /></span>
+            <span className="abn-label">Sessions</span>
           </button>
-          <button className={route === "profile" ? "active" : ""} onClick={() => setRoute("profile")} type="button" title="Profile">
-            <RitualNavIcon name="profile" />
-            <span className="dock-label">Profile</span>
+          <button className="abn-tab" onClick={() => setGlobalSearchOpen(true)} type="button" aria-label="Search">
+            <span className="abn-icon">
+              <svg aria-hidden="true" fill="none" height="22" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" viewBox="0 0 24 24" width="22"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/></svg>
+            </span>
+            <span className="abn-label">Search</span>
           </button>
-          <button className={isSideMenuOpen ? "active" : ""} onClick={() => setIsSideMenuOpen((value) => !value)} type="button" title="Menu">
-            <RitualNavIcon name="menu" />
-            <span className="dock-label">Menu</span>
+          <button className={`abn-tab ${route === "profile" ? "active" : ""}`} onClick={() => setRoute("profile")} type="button">
+            <span className="abn-icon"><RitualNavIcon name="profile" /></span>
+            <span className="abn-label">Profile</span>
           </button>
         </nav>
       )}
@@ -3464,6 +3660,63 @@ export function AppClient({ initialSlokaList, initialSloka }: AppClientProps) {
             </div>
           </article>
         </section>
+      )}
+
+      {/* ── Global search overlay ── available on every screen ── */}
+      {globalSearchOpen && (
+        <div className="gsearch-backdrop" onClick={() => { setGlobalSearchOpen(false); setGlobalSearchQuery(""); }}>
+          <div className="gsearch-panel" onClick={(e) => e.stopPropagation()}>
+            <div className="gsearch-bar">
+              <svg aria-hidden="true" fill="none" height="16" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" width="16"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/></svg>
+              <input
+                autoFocus
+                className="gsearch-input"
+                onChange={(e) => setGlobalSearchQuery(e.target.value)}
+                placeholder="Search slokas, deities…"
+                type="search"
+                value={globalSearchQuery}
+              />
+              <button className="gsearch-close" onClick={() => { setGlobalSearchOpen(false); setGlobalSearchQuery(""); }} type="button">✕</button>
+            </div>
+            <div className="gsearch-results">
+              {globalSearchQuery.trim().length < 2 ? (
+                <p className="gsearch-hint">Type at least 2 characters to search</p>
+              ) : globalSearchResults.length === 0 ? (
+                <p className="gsearch-hint">No slokas found for &ldquo;{globalSearchQuery}&rdquo;</p>
+              ) : (
+                globalSearchResults.map((sloka) => (
+                  <button
+                    className="gsearch-item"
+                    key={`gs-${sloka.id}`}
+                    onClick={() => {
+                      setGlobalSearchOpen(false);
+                      setGlobalSearchQuery("");
+                      void loadSlokaDetail(sloka.id, route === "detail" ? detailBackRoute : route as Route);
+                    }}
+                    type="button"
+                  >
+                    <div className="gsearch-item-img">
+                      <Image
+                        alt={sloka.category}
+                        className={sloka.category === "Hanuman" ? "hanuman-deity-image" : ""}
+                        height={38}
+                        sizes="38px"
+                        src={sloka.category === "Hanuman" ? HANUMAN_ICON_SRC : DEITY_PHOTOS[sloka.category] ?? DEITY_PHOTOS.Shiva}
+                        unoptimized
+                        width={38}
+                      />
+                    </div>
+                    <div className="gsearch-item-text">
+                      <strong>{sloka.title}</strong>
+                      <span>{sloka.category} · {sloka.duration}</span>
+                    </div>
+                    <svg aria-hidden="true" fill="none" height="14" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" width="14"><polyline points="9 18 15 12 9 6"/></svg>
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
       )}
 
     </div>

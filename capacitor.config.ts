@@ -4,7 +4,7 @@ const appUrl = process.env.CAPACITOR_APP_URL?.trim();
 
 const config: CapacitorConfig = {
   appId: 'com.viv.slokasabha',
-  appName: 'Sloka Sabha',
+  appName: 'My Shloka Ritual',
   webDir: 'mobile-web',
   ...(appUrl
     ? {

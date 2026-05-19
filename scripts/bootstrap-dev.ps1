@@ -9,7 +9,7 @@ $SkipQualityChecks = $env:SKIP_QUALITY_CHECKS -eq "1"
 function Write-SetupLog {
   param([string]$Message)
   Write-Host ""
-  Write-Host "[Sloka Sabha] $Message"
+  Write-Host "[My Shloka Ritual] $Message"
 }
 
 function Test-Command {

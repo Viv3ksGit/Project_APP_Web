@@ -8,7 +8,7 @@ PORT="${PORT:-3000}"
 SKIP_QUALITY_CHECKS="${SKIP_QUALITY_CHECKS:-0}"
 
 log() {
-  printf '\n[%s] %s\n' "Sloka Sabha" "$1"
+  printf '\n[%s] %s\n' "My Shloka Ritual" "$1"
 }
 
 has_command() {

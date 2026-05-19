@@ -1,4 +1,4 @@
-This is the Sloka Sabha web application built with [Next.js](https://nextjs.org).
+This is the My Shloka Ritual web application built with [Next.js](https://nextjs.org).
 
 ## Getting Started
 
