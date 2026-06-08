@@ -45,6 +45,18 @@ jobs:
         working-directory: android
         run: ./gradlew assembleDebug --stacktrace 2>&1 | tee gradle-build.log
 
+      - name: List APK outputs
+        if: always()
+        run: find android/app/build/outputs -type f | tee apk-find.log || true
+
+      - name: Upload outputs listing
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: apk-find-log
+          path: apk-find.log
+          if-no-files-found: ignore
+
       - name: Upload gradle log
         if: always()
         uses: actions/upload-artifact@v4
@@ -57,5 +69,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: app-debug-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
-          if-no-files-found: ignore
+          path: android/app/build/outputs/apk/**/*.apk
+          if-no-files-found: warn
