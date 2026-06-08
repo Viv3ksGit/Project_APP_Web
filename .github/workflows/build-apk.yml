@@ -47,7 +47,17 @@ jobs:
 
       - name: List APK outputs
         if: always()
-        run: find android/app/build/outputs -type f | tee apk-find.log || true
+        run: |
+          {
+            echo "### APK output files"
+            echo '```'
+            find android/app/build/outputs -type f 2>&1
+            echo '```'
+            echo "### Gradle build log (last 200 lines)"
+            echo '```'
+            tail -n 200 android/gradle-build.log
+            echo '```'
+          } | tee apk-find.log >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload outputs listing
         if: always()
