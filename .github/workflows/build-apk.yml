@@ -29,7 +29,14 @@ jobs:
         run: npm ci
 
       - name: Sync Capacitor Android
-        run: node_modules/.bin/cap sync android
+        run: node_modules/.bin/cap sync android 2>&1 | tee cap-sync.log
+
+      - name: Upload sync log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cap-sync-log
+          path: cap-sync.log
 
       - name: Make gradlew executable
         run: chmod +x ./android/gradlew
