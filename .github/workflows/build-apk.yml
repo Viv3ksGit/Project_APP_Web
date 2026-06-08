@@ -31,7 +31,14 @@ jobs:
       - name: Sync Capacitor Android
         env:
           CAPACITOR_APP_URL: https://project-app-web.vercel.app
-        run: node_modules/.bin/cap sync android 2>&1 | tee cap-sync.log
+        shell: bash
+        run: |
+          set -o pipefail
+          node_modules/.bin/cap sync android 2>&1 | tee cap-sync.log
+          echo "--- generated capacitor.config.json ---"
+          cat android/app/src/main/assets/capacitor.config.json
+          echo "--- assets listing ---"
+          find android/app/src/main/assets -maxdepth 2
 
       - name: Upload sync log
         if: always()
