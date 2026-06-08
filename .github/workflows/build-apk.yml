@@ -29,6 +29,8 @@ jobs:
         run: npm ci
 
       - name: Sync Capacitor Android
+        env:
+          CAPACITOR_APP_URL: https://project-app-web.vercel.app
         run: node_modules/.bin/cap sync android 2>&1 | tee cap-sync.log
 
       - name: Upload sync log
