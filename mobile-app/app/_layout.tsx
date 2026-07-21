@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import { View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import DesktopShell from "../components/DesktopShell";
 import { hydrateStore } from "../lib/store";
 import { colors } from "../theme/theme";
 
@@ -36,14 +37,16 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <StatusBar style="dark" />
-        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "#EFE7D6" } }}>
-          <Stack.Screen name="index" />
-          <Stack.Screen name="welcome" />
-          <Stack.Screen name="setup" />
-          <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="reader/[id]" />
-          <Stack.Screen name="panchangam" />
-        </Stack>
+        <DesktopShell>
+          <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "#EFE7D6" } }}>
+            <Stack.Screen name="index" />
+            <Stack.Screen name="welcome" />
+            <Stack.Screen name="setup" />
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="reader/[id]" />
+            <Stack.Screen name="panchangam" />
+          </Stack>
+        </DesktopShell>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
