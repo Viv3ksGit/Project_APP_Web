@@ -1,0 +1,43 @@
+{
+  "expo": {
+    "name": "My Shloka Ritual",
+    "slug": "my-shloka-ritual",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "myshlokaritual",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#12100d"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.vivek.myshlokaritual"
+    },
+    "android": {
+      "package": "com.vivek.myshlokaritual",
+      "adaptiveIcon": {
+        "backgroundColor": "#12100d",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      "expo-image"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

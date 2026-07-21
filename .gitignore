@@ -42,3 +42,10 @@ next-env.d.ts
 
 # Claude Code local settings
 .claude/
+
+# mobile-app (Expo project embedded for web deploy)
+mobile-app/node_modules
+mobile-app/dist
+mobile-app/.expo
+mobile-app/android
+mobile-app/ios
