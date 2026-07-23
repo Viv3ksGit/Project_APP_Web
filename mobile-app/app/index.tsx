@@ -34,7 +34,7 @@ export default function Landing() {
   };
 
   return (
-    <Screen scene>
+    <Screen scene sceneFit="contain">
       <View style={[styles.center, { paddingTop: insets.top, paddingBottom: insets.bottom + 24 }]}>
         <View style={[styles.card, { width: cardWidth }]}>
           <ScrollView

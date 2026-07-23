@@ -11,25 +11,32 @@ import { colors } from "../theme/theme";
 // (iOS/Android) always gets the full device width. Each screen owns its
 // full-window background (the misty scene on entry screens, paper on content
 // screens) so nothing bleeds onto the sides.
-export default function Screen({ children, scene = false }: { children: ReactNode; scene?: boolean }) {
+//
+// sceneFit controls how the splash art fills a wide desktop window:
+//   "cover"   → full-bleed, fills the whole viewport (gentle crop). Default.
+//   "contain" → whole square composition shown uncropped (used on the splash
+//               landing so the full lotus/lake/sunrise art is visible).
+// On phones the scene is always full-bleed ("cover") regardless.
+export default function Screen({
+  children,
+  scene = false,
+  sceneFit = "cover",
+}: {
+  children: ReactNode;
+  scene?: boolean;
+  sceneFit?: "cover" | "contain";
+}) {
   const { width } = useWindowDimensions();
   const max = contentMaxWidth(width);
   const column = <View style={[styles.col, { maxWidth: max }]}>{children}</View>;
 
   if (scene) {
-    // The splash art is a square composition (mountains/lake/lotus). On a
-    // tall phone, "cover" crops it gently and reads as a full-bleed photo.
-    // On a wide desktop browser, "cover" would crop away most of the scene
-    // to fill the width — so there we show it whole ("contain") over a
-    // matching cream backdrop instead of a zoomed sliver.
     const isWideWeb = Platform.OS === "web" && width >= 760;
+    const fit = isWideWeb ? sceneFit : "cover";
+    const letterboxed = fit === "contain";
     return (
-      <View style={[styles.fill, isWideWeb && { backgroundColor: colors.paperDeep }]}>
-        <Image
-          source={SPLASH_BG}
-          style={StyleSheet.absoluteFill}
-          contentFit={isWideWeb ? "contain" : "cover"}
-        />
+      <View style={[styles.fill, letterboxed && { backgroundColor: colors.paperDeep }]}>
+        <Image source={SPLASH_BG} style={StyleSheet.absoluteFill} contentFit={fit} />
         <View style={styles.sceneWash} />
         {column}
       </View>
