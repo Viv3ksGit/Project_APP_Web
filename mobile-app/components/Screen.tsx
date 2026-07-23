@@ -26,7 +26,7 @@ export default function Screen({
   scene?: boolean;
   sceneFit?: "cover" | "contain";
 }) {
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
   const max = contentMaxWidth(width);
   const column = <View style={[styles.col, { maxWidth: max }]}>{children}</View>;
 
@@ -34,8 +34,13 @@ export default function Screen({
     const isWideWeb = Platform.OS === "web" && width >= 760;
     const fit = isWideWeb ? sceneFit : "cover";
     const letterboxed = fit === "contain";
+    // On web, pin an explicit viewport height so flex:1 always resolves a
+    // definite height — otherwise expo-image's absoluteFill wrapper can
+    // collapse to 0px on screens without a growing child (e.g. the landing
+    // carousel), leaving the background blank.
+    const webHeight = Platform.OS === "web" ? ({ height } as const) : null;
     return (
-      <View style={[styles.fill, letterboxed && { backgroundColor: colors.paperDeep }]}>
+      <View style={[styles.fill, webHeight, letterboxed && { backgroundColor: colors.paperDeep }]}>
         <Image source={SPLASH_BG} style={StyleSheet.absoluteFill} contentFit={fit} />
         <View style={styles.sceneWash} />
         {column}
