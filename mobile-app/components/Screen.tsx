@@ -1,20 +1,38 @@
+import { Image } from "expo-image";
 import { ReactNode } from "react";
-import { ImageBackground, Platform, StyleSheet, View } from "react-native";
+import { Platform, StyleSheet, useWindowDimensions, View } from "react-native";
 import { SPLASH_BG } from "../lib/deityImages";
+import { contentMaxWidth } from "../lib/responsive";
 import { colors } from "../theme/theme";
 
-// Phone-width content column on web; full width on native. Each screen owns its
+// Content column scales up with the browser window on web (see lib/responsive)
+// instead of staying pinned to a fixed mobile width — so the site reads as a
+// real responsive page, not a phone screen floating in a big window. Native
+// (iOS/Android) always gets the full device width. Each screen owns its
 // full-window background (the misty scene on entry screens, paper on content
-// screens) so nothing bleeds onto the sides — matching the reference app.
-const MAX = Platform.OS === "web" ? 480 : undefined;
-
+// screens) so nothing bleeds onto the sides.
 export default function Screen({ children, scene = false }: { children: ReactNode; scene?: boolean }) {
-  const column = <View style={styles.col}>{children}</View>;
+  const { width } = useWindowDimensions();
+  const max = contentMaxWidth(width);
+  const column = <View style={[styles.col, { maxWidth: max }]}>{children}</View>;
+
   if (scene) {
+    // The splash art is a square composition (mountains/lake/lotus). On a
+    // tall phone, "cover" crops it gently and reads as a full-bleed photo.
+    // On a wide desktop browser, "cover" would crop away most of the scene
+    // to fill the width — so there we show it whole ("contain") over a
+    // matching cream backdrop instead of a zoomed sliver.
+    const isWideWeb = Platform.OS === "web" && width >= 760;
     return (
-      <ImageBackground source={SPLASH_BG} style={styles.fill} resizeMode="cover">
+      <View style={[styles.fill, isWideWeb && { backgroundColor: colors.paperDeep }]}>
+        <Image
+          source={SPLASH_BG}
+          style={StyleSheet.absoluteFill}
+          contentFit={isWideWeb ? "contain" : "cover"}
+        />
+        <View style={styles.sceneWash} />
         {column}
-      </ImageBackground>
+      </View>
     );
   }
   return <View style={[styles.fill, { backgroundColor: colors.paper }]}>{column}</View>;
@@ -22,5 +40,14 @@ export default function Screen({ children, scene = false }: { children: ReactNod
 
 const styles = StyleSheet.create({
   fill: { flex: 1, backgroundColor: "#EFE7D6" },
-  col: { flex: 1, width: "100%", maxWidth: MAX, alignSelf: "center", overflow: "hidden" },
+  col: { flex: 1, width: "100%", alignSelf: "center", overflow: "hidden" },
+  // Gentle overlay so text stays legible wherever the crop/letterbox lands
+  sceneWash: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(255,251,242,0.12)",
+  },
 });

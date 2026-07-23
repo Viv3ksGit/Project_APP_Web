@@ -2,21 +2,19 @@ import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { useRef, useState } from "react";
 import {
-  Dimensions,
   NativeScrollEvent,
   NativeSyntheticEvent,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Screen from "../components/Screen";
 import { BRAND_MARK } from "../lib/deityImages";
 import { colors, fonts, radius, shadow } from "../theme/theme";
-
-const { width } = Dimensions.get("window");
 
 const SLIDES = [
   { title: "My Shloka Ritual", body: "A calm daily practice for Tamil & English chanting." },
@@ -27,7 +25,8 @@ export default function Landing() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [index, setIndex] = useState(0);
-  const cardWidth = Math.min(width - 48, 420);
+  const { width } = useWindowDimensions();
+  const cardWidth = Math.min(width - 48, width >= 900 ? 520 : 420);
 
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const i = Math.round(e.nativeEvent.contentOffset.x / cardWidth);

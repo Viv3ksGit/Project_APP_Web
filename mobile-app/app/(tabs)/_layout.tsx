@@ -1,11 +1,13 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
-import { Platform } from "react-native";
+import { useWindowDimensions } from "react-native";
+import { contentMaxWidth } from "../../lib/responsive";
 import { colors, fonts } from "../../theme/theme";
 
-const MAX = Platform.OS === "web" ? 480 : undefined;
-
 export default function TabsLayout() {
+  const { width } = useWindowDimensions();
+  const max = contentMaxWidth(width);
+
   return (
     <Tabs
       screenOptions={{
@@ -19,7 +21,7 @@ export default function TabsLayout() {
           paddingBottom: 8,
           paddingTop: 6,
           width: "100%",
-          maxWidth: MAX,
+          maxWidth: max,
           alignSelf: "center",
         },
         tabBarLabelStyle: { fontFamily: fonts.medium, fontSize: 11 },
