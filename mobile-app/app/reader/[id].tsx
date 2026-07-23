@@ -102,6 +102,9 @@ export default function Reader() {
           <Ionicons name="chevron-back" size={24} color={colors.inkDeep} />
         </Pressable>
         <Text style={styles.topTitle} numberOfLines={1}>{sloka.title}</Text>
+        <Pressable onPress={() => router.push("/(tabs)/home")} hitSlop={12} style={styles.iconBtn}>
+          <Ionicons name="home-outline" size={20} color={colors.inkDeep} />
+        </Pressable>
         <Pressable onPress={() => router.push("/(tabs)/search")} hitSlop={12} style={styles.iconBtn}>
           <Ionicons name="search-outline" size={20} color={colors.inkDeep} />
         </Pressable>
