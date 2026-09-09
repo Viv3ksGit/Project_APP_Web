@@ -182,39 +182,6 @@ export default function Home() {
               </Pressable>
             ))}
           </ScrollView>
-
-          {/* Tamil calendar (live panchangam) */}
-          {cal && (
-            <Pressable style={styles.calCard} onPress={() => router.push("/panchangam")}>
-              <View style={styles.calHeadRow}>
-                <Text style={styles.calDate}>
-                  {cal.weekday}, {cal.date}
-                </Text>
-                <Ionicons name="chevron-forward" size={16} color={colors.lotusDeep} />
-              </View>
-              <View style={styles.calRow}>
-                {[
-                  ["TITHI", cal.tithi],
-                  ["PAKSHA", cal.paksha],
-                  ["MASA", cal.masa],
-                ].map(([k, v]) => (
-                  <View key={k} style={styles.calPill}>
-                    <Text style={styles.calPillKey}>{k}</Text>
-                    <Text style={styles.calPillVal} numberOfLines={1} adjustsFontSizeToFit>
-                      {v}
-                    </Text>
-                  </View>
-                ))}
-              </View>
-              <View style={styles.festRow}>
-                <Text style={styles.festPill}>{cal.highlight}</Text>
-                {cal.festivals.slice(0, 2).map((f) => (
-                  <Text key={f.name} style={styles.festPill}>{f.name}</Text>
-                ))}
-              </View>
-              <Text style={styles.calLoc}>{cal.location}</Text>
-            </Pressable>
-          )}
         </>
       )}
 
@@ -223,6 +190,39 @@ export default function Home() {
       {(query ? results : results.slice(0, 5)).map((s) => (
         <SlokaCard key={s.id} sloka={s} />
       ))}
+
+      {/* Tamil calendar (live panchangam) — moved below Popular Slokas */}
+      {!query && cal && (
+        <Pressable style={styles.calCard} onPress={() => router.push("/panchangam")}>
+          <View style={styles.calHeadRow}>
+            <Text style={styles.calDate}>
+              {cal.weekday}, {cal.date}
+            </Text>
+            <Ionicons name="chevron-forward" size={16} color={colors.lotusDeep} />
+          </View>
+          <View style={styles.calRow}>
+            {[
+              ["TITHI", cal.tithi],
+              ["PAKSHA", cal.paksha],
+              ["MASA", cal.masa],
+            ].map(([k, v]) => (
+              <View key={k} style={styles.calPill}>
+                <Text style={styles.calPillKey}>{k}</Text>
+                <Text style={styles.calPillVal} numberOfLines={1} adjustsFontSizeToFit>
+                  {v}
+                </Text>
+              </View>
+            ))}
+          </View>
+          <View style={styles.festRow}>
+            <Text style={styles.festPill}>{cal.highlight}</Text>
+            {cal.festivals.slice(0, 2).map((f) => (
+              <Text key={f.name} style={styles.festPill}>{f.name}</Text>
+            ))}
+          </View>
+          <Text style={styles.calLoc}>{cal.location}</Text>
+        </Pressable>
+      )}
 
       {!query && (
         <Pressable style={styles.exploreBtn} onPress={() => router.push("/(tabs)/explore")}>
