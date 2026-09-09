@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import Slider from "@react-native-community/slider";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
@@ -21,13 +22,13 @@ import { colors, fonts, radius, shadow } from "../theme/theme";
 type RitualStyle = "calm" | "count" | "timed";
 type Reminder = "morning" | "evening" | "custom" | "none";
 
-const STEP_TITLES = ["Welcome! Let's get started.", "Choose your language", "Set your ritual style", "Set your reminders"];
+const STEP_TITLES = ["Welcome! Let's get started.", "Set your ritual style", "Set your reminders"];
 const STEP_SUBS = [
   "A small step today, a lifetime of calm.",
-  "We'll show slokas and meanings in your preferred language.",
   "Choose how you want to chant and build your daily practice.",
   "We'll gently remind you so you never miss your daily ritual.",
 ];
+const LAST_STEP = STEP_TITLES.length - 1;
 
 export default function Setup() {
   const router = useRouter();
@@ -57,7 +58,7 @@ export default function Setup() {
     router.replace("/(tabs)/home");
   };
 
-  const next = () => (step < 3 ? setStep(step + 1) : finish());
+  const next = () => (step < LAST_STEP ? setStep(step + 1) : finish());
   const back = () => (step > 0 ? setStep(step - 1) : router.back());
 
   return (
@@ -69,14 +70,14 @@ export default function Setup() {
           <Ionicons name="chevron-back" size={22} color={colors.inkDeep} />
         </Pressable>
         <View style={styles.stepsWrap}>
-          <Text style={styles.stepLabel}>Step {step + 1} of 4</Text>
+          <Text style={styles.stepLabel}>Step {step + 1} of {STEP_TITLES.length}</Text>
           <View style={styles.dots}>
-            {[0, 1, 2, 3].map((i) => (
+            {STEP_TITLES.map((_, i) => (
               <View key={i} style={styles.dotRow}>
                 <View style={[styles.dot, i <= step && styles.dotDone]}>
                   {i < step && <Ionicons name="checkmark" size={10} color="#fff" />}
                 </View>
-                {i < 3 && <View style={[styles.dotLine, i < step && styles.dotLineDone]} />}
+                {i < LAST_STEP && <View style={[styles.dotLine, i < step && styles.dotLineDone]} />}
               </View>
             ))}
           </View>
@@ -118,17 +119,23 @@ export default function Setup() {
                   <Text style={styles.goalTitle}>Daily chant count target</Text>
                   <Text style={styles.goalHint}>How many slokas do you want to chant each day?</Text>
                 </View>
+                <Text style={styles.goalValue}>{chants}</Text>
               </View>
-              <View style={styles.stepper}>
-                <Pressable onPress={() => setChants((c) => Math.max(1, c - 1))} style={styles.stepBtn}>
-                  <Text style={styles.stepBtnText}>−</Text>
-                </Pressable>
-                <Text style={styles.stepValue}>{chants}</Text>
-                <Pressable onPress={() => setChants((c) => Math.min(108, c + 1))} style={styles.stepBtn}>
-                  <Text style={styles.stepBtnText}>+</Text>
-                </Pressable>
+              <Slider
+                style={styles.slider}
+                minimumValue={1}
+                maximumValue={51}
+                step={1}
+                value={chants}
+                onValueChange={setChants}
+                minimumTrackTintColor={colors.lotus}
+                maximumTrackTintColor={colors.line}
+                thumbTintColor={colors.lotusDeep}
+              />
+              <View style={styles.sliderEnds}>
+                <Text style={styles.sliderEndText}>1</Text>
+                <Text style={styles.sliderEndText}>51 chants</Text>
               </View>
-              <Text style={styles.stepUnit}>chants</Text>
             </View>
 
             <View style={styles.goalCard}>
@@ -138,24 +145,26 @@ export default function Setup() {
                   <Text style={styles.goalTitle}>Daily time target</Text>
                   <Text style={styles.goalHint}>How much time do you want to spend chanting each day?</Text>
                 </View>
+                <Text style={styles.goalValue}>{minutes}</Text>
               </View>
-              <View style={styles.stepper}>
-                <Pressable onPress={() => setMinutes((m) => Math.max(5, m - 5))} style={styles.stepBtn}>
-                  <Text style={styles.stepBtnText}>−</Text>
-                </Pressable>
-                <Text style={styles.stepValue}>{minutes}</Text>
-                <Pressable onPress={() => setMinutes((m) => Math.min(180, m + 5))} style={styles.stepBtn}>
-                  <Text style={styles.stepBtnText}>+</Text>
-                </Pressable>
+              <Slider
+                style={styles.slider}
+                minimumValue={5}
+                maximumValue={180}
+                step={5}
+                value={minutes}
+                onValueChange={setMinutes}
+                minimumTrackTintColor={colors.amberDeep}
+                maximumTrackTintColor={colors.line}
+                thumbTintColor={colors.copper}
+              />
+              <View style={styles.sliderEnds}>
+                <Text style={styles.sliderEndText}>5 min</Text>
+                <Text style={styles.sliderEndText}>180 min</Text>
               </View>
-              <Text style={styles.stepUnit}>minutes</Text>
             </View>
-          </>
-        )}
 
-        {step === 1 && (
-          <>
-            <Text style={styles.fieldLabel}>Select your preferred language</Text>
+            <Text style={[styles.fieldLabel, { marginTop: 26 }]}>Select your preferred language</Text>
             {[
               { key: "tamil" as const, main: "தமிழ்", sub: "Tamil" },
               { key: "english" as const, main: "English", sub: "Transliteration" },
@@ -199,7 +208,7 @@ export default function Setup() {
           </>
         )}
 
-        {step === 2 && (
+        {step === 1 && (
           <>
             <Text style={styles.fieldLabel}>Choose your chanting style</Text>
             {[
@@ -257,7 +266,7 @@ export default function Setup() {
           </>
         )}
 
-        {step === 3 && (
+        {step === 2 && (
           <>
             <Text style={styles.fieldLabel}>When should we remind you?</Text>
             {[
@@ -296,7 +305,7 @@ export default function Setup() {
       {/* Footer CTA */}
       <View style={[styles.footer, { paddingBottom: insets.bottom + 14 }]}>
         <Pressable style={styles.cta} onPress={next}>
-          <Text style={styles.ctaText}>{step === 3 ? "Complete Setup" : "Continue"}</Text>
+          <Text style={styles.ctaText}>{step === LAST_STEP ? "Complete Setup" : "Continue"}</Text>
           <Ionicons name="arrow-forward" size={17} color="#fff" />
         </Pressable>
       </View>
@@ -357,20 +366,10 @@ const styles = StyleSheet.create({
   goalHead: { flexDirection: "row", gap: 10, alignItems: "flex-start" },
   goalTitle: { fontFamily: fonts.semibold, fontSize: 14, color: colors.ink },
   goalHint: { fontFamily: fonts.body, fontSize: 11.5, color: colors.muted, marginTop: 2 },
-  stepper: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 22, marginTop: 14 },
-  stepBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    borderWidth: 1,
-    borderColor: colors.line,
-    backgroundColor: colors.paperWarm,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  stepBtnText: { fontFamily: fonts.bold, fontSize: 19, color: colors.inkDeep, lineHeight: 22 },
-  stepValue: { fontFamily: fonts.bold, fontSize: 26, color: colors.inkDeep, minWidth: 52, textAlign: "center" },
-  stepUnit: { fontFamily: fonts.body, fontSize: 11.5, color: colors.muted, textAlign: "center", marginTop: 4 },
+  goalValue: { fontFamily: fonts.bold, fontSize: 20, color: colors.inkDeep, minWidth: 30, textAlign: "right" },
+  slider: { width: "100%", height: 34, marginTop: 6 },
+  sliderEnds: { flexDirection: "row", justifyContent: "space-between", marginTop: -2 },
+  sliderEndText: { fontFamily: fonts.body, fontSize: 10.5, color: colors.muted },
 
   option: {
     flexDirection: "row",

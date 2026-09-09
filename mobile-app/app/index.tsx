@@ -1,8 +1,8 @@
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { useAudioPlayer } from "expo-audio";
-import { useEffect, useRef } from "react";
-import { Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { useEffect } from "react";
+import { Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Screen from "../components/Screen";
 import { BRAND_MARK } from "../lib/deityImages";
@@ -20,50 +20,33 @@ export default function Landing() {
 
   // A light tambura drone loops while the landing screen is open, and
   // stops the moment you tap "Enter Shlokas" (or leave the screen any
-  // other way). Browsers block audio until the visitor has interacted
-  // with the page at least once; native has no such restriction. On web,
-  // if the immediate attempt is blocked, retry once on the first
-  // tap/keypress, guarded against double-playing if it actually succeeded.
+  // other way).
+  //
+  // Browsers block audio until the visitor has interacted with the page —
+  // and on this screen that first interaction is almost always the Enter
+  // button itself. So instead of racing a generic "play on first click"
+  // listener against the button's own pause+navigate (which silenced it
+  // before it could be heard), the button press explicitly (re)starts
+  // playback — guaranteed allowed, since it's a direct click handler — and
+  // navigation is delayed just long enough for the chime to be audible.
   const player = useAudioPlayer(TAMBURA_LOOP);
-  const stoppedRef = useRef(false);
 
   useEffect(() => {
-    stoppedRef.current = false;
     player.loop = true;
     player.volume = 0.22;
     player.play();
-
-    if (Platform.OS !== "web") return;
-
-    const retry = () => {
-      if (!stoppedRef.current && !player.playing) player.play();
-      window.removeEventListener("pointerdown", retry);
-      window.removeEventListener("keydown", retry);
-    };
-    window.addEventListener("pointerdown", retry, { once: true });
-    window.addEventListener("keydown", retry, { once: true });
-
     return () => {
-      window.removeEventListener("pointerdown", retry);
-      window.removeEventListener("keydown", retry);
-    };
-  }, [player]);
-
-  // Stop on unmount (navigating away by any route, e.g. deep link/back).
-  useEffect(() => {
-    return () => {
-      stoppedRef.current = true;
       player.pause();
     };
   }, [player]);
 
   const enter = () => {
-    stoppedRef.current = true;
-    player.pause();
-    // Journey Selection (welcome) only appears for new users — once seen,
-    // Enter Shlokas skips straight to Home. It stays reachable anytime via
-    // the Journey tab.
-    router.push(settings.welcomeSeen ? "/(tabs)/home" : "/welcome");
+    player.play();
+    const dest = settings.welcomeSeen ? "/(tabs)/home" : "/welcome";
+    setTimeout(() => {
+      player.pause();
+      router.push(dest);
+    }, 350);
   };
 
   return (
