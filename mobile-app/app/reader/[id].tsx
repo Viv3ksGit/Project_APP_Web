@@ -28,13 +28,15 @@ const dotOf = (v?: string) => HIGHLIGHTS.find((h) => h.value === v)?.dot;
 // A brief shower of rose petals when "I've chanted this" is tapped — purely
 // decorative, unmounts itself once the fall animation finishes.
 function RosePetals({ width, height }: { width: number; height: number }) {
+  // Spread generously across the FULL width so petals visibly fall
+  // "everywhere" from the top of the screen, not just near the button.
   const petals = useRef(
-    Array.from({ length: 16 }, () => ({
-      x: Math.random() * width,
-      delay: Math.random() * 300,
-      duration: 1400 + Math.random() * 700,
-      size: 14 + Math.random() * 10,
-      drift: (Math.random() - 0.5) * 80,
+    Array.from({ length: 28 }, (_, i) => ({
+      x: (width / 28) * i + (Math.random() - 0.5) * (width / 28),
+      delay: Math.random() * 500,
+      duration: 1800 + Math.random() * 900,
+      size: 14 + Math.random() * 12,
+      drift: (Math.random() - 0.5) * 100,
       spin: (Math.random() - 0.5) * 360,
       progress: new Animated.Value(0),
     }))
@@ -57,7 +59,7 @@ function RosePetals({ width, height }: { width: number; height: number }) {
   return (
     <View pointerEvents="none" style={[StyleSheet.absoluteFill, { zIndex: 999 }]}>
       {petals.map((p, i) => {
-        const translateY = p.progress.interpolate({ inputRange: [0, 1], outputRange: [-30, height + 30] });
+        const translateY = p.progress.interpolate({ inputRange: [0, 1], outputRange: [-60, height + 30] });
         const translateX = p.progress.interpolate({ inputRange: [0, 1], outputRange: [0, p.drift] });
         const rotate = p.progress.interpolate({ inputRange: [0, 1], outputRange: ["0deg", `${p.spin}deg`] });
         const opacity = p.progress.interpolate({ inputRange: [0, 0.85, 1], outputRange: [1, 1, 0] });
@@ -139,8 +141,8 @@ export default function Reader() {
     recordChant(sloka.id, minutes);
     setChanted(true);
     setShowPetals(true);
-    // Let the rose-petal shower play briefly, then head straight home.
-    setTimeout(() => router.replace("/(tabs)/home"), 1400);
+    // Let the rose-petal shower fall across the whole screen before leaving.
+    setTimeout(() => router.replace("/(tabs)/home"), 2400);
   };
 
   const goToLine = (i: number) => {
