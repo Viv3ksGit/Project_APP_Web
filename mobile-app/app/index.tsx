@@ -8,7 +8,7 @@ import Screen from "../components/Screen";
 import { BRAND_MARK } from "../lib/deityImages";
 import { colors, fonts, radius, shadow } from "../theme/theme";
 
-const TAMBURA_LOOP = require("../assets/audio/tambura-loop.wav");
+const TAMBURA_ENTRY = require("../assets/audio/tambura-loop.wav");
 
 export default function Landing() {
   const router = useRouter();
@@ -16,16 +16,12 @@ export default function Landing() {
   const { width } = useWindowDimensions();
   const cardWidth = Math.min(width - 48, width >= 900 ? 520 : 420);
 
-  // Gentle tambura drone while the landing screen is open — stops the
-  // moment you leave (Enter Shlokas or navigating away).
-  const player = useAudioPlayer(TAMBURA_LOOP);
+  // A single light tambura chime plays once on entry — not a loop.
+  const player = useAudioPlayer(TAMBURA_ENTRY);
   useEffect(() => {
-    player.loop = true;
+    player.loop = false;
     player.volume = 0.22;
     player.play();
-    return () => {
-      player.pause();
-    };
   }, [player]);
 
   return (
