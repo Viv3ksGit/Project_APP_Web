@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Animated, Easing, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Screen from "../../components/Screen";
 import { deityImage } from "../../lib/deityImages";
@@ -25,9 +25,65 @@ const HIGHLIGHTS = [
 const markerOf = (v?: string) => HIGHLIGHTS.find((h) => h.value === v)?.marker;
 const dotOf = (v?: string) => HIGHLIGHTS.find((h) => h.value === v)?.dot;
 
+// A brief shower of rose petals when "I've chanted this" is tapped — purely
+// decorative, unmounts itself once the fall animation finishes.
+function RosePetals({ width, height }: { width: number; height: number }) {
+  const petals = useRef(
+    Array.from({ length: 16 }, () => ({
+      x: Math.random() * width,
+      delay: Math.random() * 300,
+      duration: 1400 + Math.random() * 700,
+      size: 14 + Math.random() * 10,
+      drift: (Math.random() - 0.5) * 80,
+      spin: (Math.random() - 0.5) * 360,
+      progress: new Animated.Value(0),
+    }))
+  ).current;
+
+  useEffect(() => {
+    Animated.parallel(
+      petals.map((p) =>
+        Animated.timing(p.progress, {
+          toValue: 1,
+          duration: p.duration,
+          delay: p.delay,
+          easing: Easing.out(Easing.quad),
+          useNativeDriver: true,
+        })
+      )
+    ).start();
+  }, [petals]);
+
+  return (
+    <View pointerEvents="none" style={[StyleSheet.absoluteFill, { zIndex: 999 }]}>
+      {petals.map((p, i) => {
+        const translateY = p.progress.interpolate({ inputRange: [0, 1], outputRange: [-30, height + 30] });
+        const translateX = p.progress.interpolate({ inputRange: [0, 1], outputRange: [0, p.drift] });
+        const rotate = p.progress.interpolate({ inputRange: [0, 1], outputRange: ["0deg", `${p.spin}deg`] });
+        const opacity = p.progress.interpolate({ inputRange: [0, 0.85, 1], outputRange: [1, 1, 0] });
+        return (
+          <Animated.Text
+            key={i}
+            style={{
+              position: "absolute",
+              left: p.x,
+              fontSize: p.size,
+              opacity,
+              transform: [{ translateY }, { translateX }, { rotate }],
+            }}
+          >
+            🌸
+          </Animated.Text>
+        );
+      })}
+    </View>
+  );
+}
+
 export default function Reader() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { width, height } = useWindowDimensions();
   const { id } = useLocalSearchParams<{ id: string }>();
   const sloka = useMemo(() => (id ? getSlokaById(id) : null), [id]);
   const { favorites, perSlokaCount, dailyCount, dailyTarget, highlights, readerPrefs } = useStore();
@@ -38,6 +94,7 @@ export default function Reader() {
   const setShowMeaning = (fn: (v: boolean) => boolean) => setReaderPrefs({ showMeaning: fn(showMeaning) });
   const setLanguage = (l: Lang) => setReaderPrefs({ language: l });
   const [chanted, setChanted] = useState(false);
+  const [showPetals, setShowPetals] = useState(false);
   const [active, setActive] = useState(0);
   const [autoScroll, setAutoScroll] = useState(false);
   const [speed, setSpeed] = useState<Speed>("slow");
@@ -81,6 +138,9 @@ export default function Reader() {
     const minutes = Number.parseInt(sloka.duration, 10) || 5;
     recordChant(sloka.id, minutes);
     setChanted(true);
+    setShowPetals(true);
+    // Let the rose-petal shower play briefly, then head straight home.
+    setTimeout(() => router.replace("/(tabs)/home"), 1400);
   };
 
   const goToLine = (i: number) => {
@@ -96,6 +156,7 @@ export default function Reader() {
   return (
     <Screen>
     <View style={styles.root}>
+      {showPetals && <RosePetals width={width} height={height} />}
       {/* Top bar */}
       <View style={[styles.topBar, { paddingTop: insets.top + 6 }]}>
         <Pressable onPress={goBack} hitSlop={12} style={styles.iconBtn}>
