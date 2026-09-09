@@ -40,7 +40,7 @@ export default function Landing() {
 
   useEffect(() => {
     player.loop = true;
-    player.volume = 0.22;
+    player.volume = 0.38;
     player.play();
     return () => {
       player.pause();
@@ -49,10 +49,15 @@ export default function Landing() {
 
   useEffect(() => {
     const onFirstInteract = () => startAudio();
+    // Cover mouse, touch and keyboard — pointerdown alone can miss on some
+    // mobile browsers (notably older iOS Safari), so touchstart is added
+    // as a belt-and-braces fallback.
     window.addEventListener?.("pointerdown", onFirstInteract);
+    window.addEventListener?.("touchstart", onFirstInteract);
     window.addEventListener?.("keydown", onFirstInteract);
     return () => {
       window.removeEventListener?.("pointerdown", onFirstInteract);
+      window.removeEventListener?.("touchstart", onFirstInteract);
       window.removeEventListener?.("keydown", onFirstInteract);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
