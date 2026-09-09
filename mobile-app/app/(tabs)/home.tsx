@@ -131,23 +131,25 @@ export default function Home() {
             </View>
             <Text style={styles.progressPct}>{progressPct}%</Text>
           </View>
-
-          {/* Featured sloka row */}
-          <Pressable style={styles.todayRow} onPress={() => openReader(featured.id)}>
-            <Image source={deityImage(featured.category)} style={styles.todayImg} contentFit="cover" />
-            <View style={styles.todayBody}>
-              <Text style={styles.todayTitle} numberOfLines={1}>
-                {featured.title}
-              </Text>
-              <Text style={styles.todayMeta}>
-                {featured.category} · {featured.duration}
-              </Text>
-            </View>
-            <View style={styles.chantBtn}>
-              <Text style={styles.chantText}>Chant Now</Text>
-            </View>
-          </Pressable>
         </View>
+      )}
+
+      {/* Today's recommended slokas — moved up, right after the progress card */}
+      {!query && todayIds.length > 0 && (
+        <>
+          <Text style={styles.sectionTitle}>For {weekday}</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingBottom: 4 }}>
+            {all.filter((s) => todayIds.includes(s.id)).map((s) => (
+              <Pressable key={s.id} style={styles.todayPill} onPress={() => openReader(s.id)}>
+                <Image source={deityImage(s.category)} style={styles.todayPillImg} contentFit="cover" />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.todayPillTitle} numberOfLines={1}>{s.title}</Text>
+                  <Text style={styles.todayPillMeta}>{s.category} · {s.duration}</Text>
+                </View>
+              </Pressable>
+            ))}
+          </ScrollView>
+        </>
       )}
 
       {/* Search */}
@@ -180,24 +182,6 @@ export default function Home() {
               </Pressable>
             ))}
           </ScrollView>
-
-          {/* Today's recommended slokas */}
-          {todayIds.length > 0 && (
-            <>
-              <Text style={styles.sectionTitle}>For {weekday}</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingBottom: 4 }}>
-                {all.filter((s) => todayIds.includes(s.id)).map((s) => (
-                  <Pressable key={s.id} style={styles.todayPill} onPress={() => openReader(s.id)}>
-                    <Image source={deityImage(s.category)} style={styles.todayPillImg} contentFit="cover" />
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.todayPillTitle} numberOfLines={1}>{s.title}</Text>
-                      <Text style={styles.todayPillMeta}>{s.category} · {s.duration}</Text>
-                    </View>
-                  </Pressable>
-                ))}
-              </ScrollView>
-            </>
-          )}
 
           {/* Tamil calendar (live panchangam) */}
           {cal && (
