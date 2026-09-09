@@ -35,6 +35,13 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="journey"
+        options={{
+          title: "Journey",
+          href: null, // reachable via Profile, not shown in the tab bar
+        }}
+      />
+      <Tabs.Screen
         name="explore"
         options={{
           title: "Explore",

@@ -57,6 +57,17 @@ export default function Profile() {
         </Pressable>
       </View>
 
+      <Pressable style={styles.menuRow} onPress={() => router.push("/(tabs)/journey")}>
+        <View style={styles.menuIcon}>
+          <Ionicons name="compass-outline" size={18} color={colors.lotus} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.menuTitle}>Journey Selection</Text>
+          <Text style={styles.menuSub}>Set up your ritual or explore the library</Text>
+        </View>
+        <Ionicons name="chevron-forward" size={18} color={colors.muted} />
+      </Pressable>
+
       <View style={styles.statsRow}>
         {stats.map((s) => (
           <View key={s.label} style={styles.statCard}>
@@ -131,6 +142,28 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   editText: { fontFamily: fonts.medium, fontSize: 13, color: colors.lotus },
+  menuRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.line,
+    padding: 14,
+    marginBottom: 20,
+    ...shadow.card,
+  },
+  menuIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: colors.halo,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  menuTitle: { fontFamily: fonts.semibold, fontSize: 14.5, color: colors.ink },
+  menuSub: { fontFamily: fonts.body, fontSize: 12, color: colors.muted, marginTop: 1 },
   statsRow: { flexDirection: "row", gap: 12 },
   statCard: {
     flex: 1,

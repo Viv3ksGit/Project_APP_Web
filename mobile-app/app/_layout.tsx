@@ -61,7 +61,7 @@ export default function RootLayout() {
         <StatusBar style="dark" />
         <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "#EFE7D6" } }}>
           <Stack.Screen name="index" />
-          <Stack.Screen name="welcome" />
+          <Stack.Screen name="welcome" options={{ animation: "fade", animationDuration: 400 }} />
           <Stack.Screen name="setup" />
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="reader/[id]" />

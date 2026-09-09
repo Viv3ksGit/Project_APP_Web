@@ -6,6 +6,7 @@ import { Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Screen from "../components/Screen";
 import { BRAND_MARK } from "../lib/deityImages";
+import { useStore } from "../lib/store";
 import { colors, fonts, radius, shadow } from "../theme/theme";
 
 const TAMBURA_LOOP = require("../assets/audio/tambura-loop.wav");
@@ -13,6 +14,7 @@ const TAMBURA_LOOP = require("../assets/audio/tambura-loop.wav");
 export default function Landing() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { settings } = useStore();
   const { width } = useWindowDimensions();
   const cardWidth = Math.min(width - 48, width >= 900 ? 520 : 420);
 
@@ -58,7 +60,10 @@ export default function Landing() {
   const enter = () => {
     stoppedRef.current = true;
     player.pause();
-    router.push("/welcome");
+    // Journey Selection (welcome) only appears for new users — once seen,
+    // Enter Shlokas skips straight to Home. It stays reachable anytime via
+    // the Journey tab.
+    router.push(settings.welcomeSeen ? "/(tabs)/home" : "/welcome");
   };
 
   return (

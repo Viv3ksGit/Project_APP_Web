@@ -23,6 +23,10 @@ export type StoreState = {
     scrollSpeed: "slow" | "medium" | "fast";
     reminder: "morning" | "evening" | "custom" | "none";
     setupDone: boolean;
+    // true once the user has passed through the Journey Selection screen
+    // (Set Up Ritual or Explore Library) — after that, Enter Shlokas skips
+    // straight to Home instead of showing it again.
+    welcomeSeen: boolean;
   };
   // rolling chant activity log (newest first, capped)
   chantLog: { t: number; id: string; min: number }[];
@@ -47,6 +51,7 @@ let state: StoreState = {
     scrollSpeed: "slow",
     reminder: "none",
     setupDone: false,
+    welcomeSeen: false,
   },
   chantLog: [],
 };
