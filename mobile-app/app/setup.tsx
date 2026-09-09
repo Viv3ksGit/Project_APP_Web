@@ -22,20 +22,11 @@ import { colors, fonts, radius, shadow } from "../theme/theme";
 type RitualStyle = "calm" | "count" | "timed";
 type Reminder = "morning" | "evening" | "custom" | "none";
 
-const STEP_TITLES = ["Welcome! Let's get started.", "Set your ritual style", "Set your reminders"];
-const STEP_SUBS = [
-  "A small step today, a lifetime of calm.",
-  "Choose how you want to chant and build your daily practice.",
-  "We'll gently remind you so you never miss your daily ritual.",
-];
-const LAST_STEP = STEP_TITLES.length - 1;
-
 export default function Setup() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { dailyTarget, settings, readerPrefs } = useStore();
 
-  const [step, setStep] = useState(0);
   const [name, setName] = useState("");
   const [chants, setChants] = useState(dailyTarget);
   const [minutes, setMinutes] = useState(settings.dailyMinutes);
@@ -58,30 +49,17 @@ export default function Setup() {
     router.replace("/(tabs)/home");
   };
 
-  const next = () => (step < LAST_STEP ? setStep(step + 1) : finish());
-  const back = () => (step > 0 ? setStep(step - 1) : router.back());
+  const back = () => router.back();
 
   return (
     <Screen scene>
     <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-      {/* Header: back + step dots */}
+      {/* Header: back only — everything lives on one page now */}
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <Pressable onPress={back} hitSlop={12} style={styles.backBtn}>
           <Ionicons name="chevron-back" size={22} color={colors.inkDeep} />
         </Pressable>
-        <View style={styles.stepsWrap}>
-          <Text style={styles.stepLabel}>Step {step + 1} of {STEP_TITLES.length}</Text>
-          <View style={styles.dots}>
-            {STEP_TITLES.map((_, i) => (
-              <View key={i} style={styles.dotRow}>
-                <View style={[styles.dot, i <= step && styles.dotDone]}>
-                  {i < step && <Ionicons name="checkmark" size={10} color="#fff" />}
-                </View>
-                {i < LAST_STEP && <View style={[styles.dotLine, i < step && styles.dotLineDone]} />}
-              </View>
-            ))}
-          </View>
-        </View>
+        <View style={{ flex: 1 }} />
         <View style={styles.backBtn} />
       </View>
 
@@ -90,11 +68,10 @@ export default function Setup() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        <Text style={styles.title}>{STEP_TITLES[step]}</Text>
-        <Text style={styles.sub}>{STEP_SUBS[step]}</Text>
+        <Text style={styles.title}>Welcome! Let's get started.</Text>
+        <Text style={styles.sub}>Set up your ritual — you can change any of this anytime.</Text>
 
-        {step === 0 && (
-          <>
+        <>
             <Text style={styles.fieldLabel}>What should we call you?</Text>
             <Text style={styles.fieldHint}>This will be used to personalize your experience.</Text>
             <View style={styles.field}>
@@ -205,12 +182,8 @@ export default function Setup() {
                 {showMeaning && <Ionicons name="checkmark-circle" size={18} color={colors.lotus} style={styles.viewCheck} />}
               </Pressable>
             </View>
-          </>
-        )}
 
-        {step === 1 && (
-          <>
-            <Text style={styles.fieldLabel}>Choose your chanting style</Text>
+            <Text style={[styles.fieldLabel, { marginTop: 26 }]}>Choose your chanting style</Text>
             {[
               { key: "calm" as const, title: "Calm Mode", accent: "Slow, mindful and immersive", hint: "Perfect for deep focus and inner peace.", icon: "leaf-outline" as const },
               { key: "count" as const, title: "Count Mode", accent: "Focus on repetitions", hint: "Ideal for sankalpa and building consistency.", icon: "sync-outline" as const },
@@ -263,12 +236,8 @@ export default function Setup() {
                 </View>
               </View>
             </View>
-          </>
-        )}
 
-        {step === 2 && (
-          <>
-            <Text style={styles.fieldLabel}>When should we remind you?</Text>
+            <Text style={[styles.fieldLabel, { marginTop: 24 }]}>When should we remind you?</Text>
             {[
               { key: "morning" as const, title: "Morning", sub: "Start your day with divine energy", time: "7:00 AM", icon: "sunny-outline" as const },
               { key: "evening" as const, title: "Evening", sub: "Unwind and reflect after your day", time: "8:00 PM", icon: "partly-sunny-outline" as const },
@@ -298,14 +267,13 @@ export default function Setup() {
             <Text style={styles.reminderNote}>
               Reminders are saved as a preference for now — notification delivery arrives with the full app build.
             </Text>
-          </>
-        )}
+        </>
       </ScrollView>
 
       {/* Footer CTA */}
       <View style={[styles.footer, { paddingBottom: insets.bottom + 14 }]}>
-        <Pressable style={styles.cta} onPress={next}>
-          <Text style={styles.ctaText}>{step === LAST_STEP ? "Complete Setup" : "Continue"}</Text>
+        <Pressable style={styles.cta} onPress={finish}>
+          <Text style={styles.ctaText}>Complete Setup</Text>
           <Ionicons name="arrow-forward" size={17} color="#fff" />
         </Pressable>
       </View>
