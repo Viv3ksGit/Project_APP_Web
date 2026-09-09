@@ -1,12 +1,16 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useMemo } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { useRouter } from "expo-router";
+import { useMemo, useState } from "react";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle, Rect } from "react-native-svg";
 import Screen from "../../components/Screen";
 import { getSlokaSummaries } from "../../lib/slokas";
 import { useStore } from "../../lib/store";
 import { colors, fonts, radius, shadow } from "../../theme/theme";
+
+type Range = "week" | "month" | "year";
+const RANGE_LABELS: Record<Range, string> = { week: "Week", month: "Month", year: "Year" };
 
 const RING = 120;
 const STROKE = 11;
@@ -59,9 +63,11 @@ function dayKey(t: number): string {
 }
 
 export default function Insights() {
+  const router = useRouter();
   const insets = useSafeAreaInsets();
   const { dailyCount, dailyTarget, streak, totalCount, settings, chantLog } = useStore();
   const all = useMemo(() => getSlokaSummaries(), []);
+  const [range, setRange] = useState<Range>("week");
 
   const todayMinutes = useMemo(() => {
     const k = dayKey(Date.now());
@@ -70,21 +76,49 @@ export default function Insights() {
 
   const totalMinutes = useMemo(() => chantLog.reduce((s, e) => s + e.min, 0), [chantLog]);
 
-  // Last 7 days chant counts for the bar chart
-  const week = useMemo(() => {
-    const days: { label: string; count: number }[] = [];
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date(Date.now() - i * 86_400_000);
-      const k = d.toISOString().slice(0, 10);
-      days.push({
-        label: d.toLocaleDateString("en-US", { weekday: "narrow" }),
-        count: chantLog.filter((e) => dayKey(e.t) === k).length,
-      });
+  // Bars for the chart — last 7 days, last 6 weeks, or last 12 months,
+  // depending on the selected range toggle.
+  const bars = useMemo(() => {
+    if (range === "week") {
+      const days: { label: string; count: number; isCurrent: boolean }[] = [];
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(Date.now() - i * 86_400_000);
+        const k = d.toISOString().slice(0, 10);
+        days.push({
+          label: d.toLocaleDateString("en-US", { weekday: "narrow" }),
+          count: chantLog.filter((e) => dayKey(e.t) === k).length,
+          isCurrent: i === 0,
+        });
+      }
+      return days;
     }
-    return days;
-  }, [chantLog]);
+    if (range === "month") {
+      const weeks: { label: string; count: number; isCurrent: boolean }[] = [];
+      for (let i = 5; i >= 0; i--) {
+        const end = Date.now() - i * 7 * 86_400_000;
+        const start = end - 6 * 86_400_000;
+        const count = chantLog.filter((e) => e.t >= start - 86_400_000 && e.t <= end).length;
+        weeks.push({ label: `W${6 - i}`, count, isCurrent: i === 0 });
+      }
+      return weeks;
+    }
+    // year — last 12 months
+    const months: { label: string; count: number; isCurrent: boolean }[] = [];
+    const now = new Date();
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const count = chantLog.filter((e) => {
+        const et = new Date(e.t);
+        return et.getFullYear() === d.getFullYear() && et.getMonth() === d.getMonth();
+      }).length;
+      months.push({ label: d.toLocaleDateString("en-US", { month: "narrow" }), count, isCurrent: i === 0 });
+    }
+    return months;
+  }, [chantLog, range]);
 
-  const maxCount = Math.max(1, ...week.map((d) => d.count));
+  const maxCount = Math.max(1, ...bars.map((d) => d.count));
+  const barSlot = 256 / bars.length;
+  const barWidth = Math.min(24, barSlot * 0.55);
   const recent = chantLog.slice(0, 5);
 
   const titleOf = (id: string) => all.find((s) => s.id === id)?.title ?? id;
@@ -95,6 +129,11 @@ export default function Insights() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingTop: insets.top + 16, paddingHorizontal: 20, paddingBottom: 24 }}
       >
+        <View style={styles.topBar}>
+          <Pressable onPress={() => router.push("/(tabs)/home")} hitSlop={12} style={styles.backBtn}>
+            <Ionicons name="chevron-back" size={22} color={colors.inkDeep} />
+          </Pressable>
+        </View>
         <Text style={styles.title}>{"Today's Progress"}</Text>
         <Text style={styles.sub}>Your progress toward {"today's"} goals 🌿</Text>
 
@@ -140,28 +179,38 @@ export default function Insights() {
           ))}
         </View>
 
-        {/* Weekly bar chart */}
-        <Text style={styles.section}>This Week</Text>
+        {/* Bar chart with week/month/year toggle */}
+        <View style={styles.sectionRow}>
+          <Text style={[styles.section, { marginTop: 0, marginBottom: 0 }]}>This {RANGE_LABELS[range]}</Text>
+          <View style={styles.rangeSeg}>
+            {(["week", "month", "year"] as Range[]).map((r) => (
+              <Pressable key={r} onPress={() => setRange(r)} style={[styles.rangeBtn, range === r && styles.rangeBtnActive]}>
+                <Text style={[styles.rangeText, range === r && styles.rangeTextActive]}>{RANGE_LABELS[r]}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
         <View style={styles.chartCard}>
           <Svg width="100%" height={110} viewBox="0 0 280 110">
-            {week.map((d, i) => {
+            {bars.map((d, i) => {
               const h = Math.max(4, (d.count / maxCount) * 80);
+              const x = 12 + i * barSlot + (barSlot - barWidth) / 2;
               return (
                 <Rect
                   key={i}
-                  x={12 + i * 38}
+                  x={x}
                   y={92 - h}
-                  width={18}
+                  width={barWidth}
                   height={h}
                   rx={4}
-                  fill={i === 6 ? colors.lotus : "rgba(46,125,50,0.35)"}
+                  fill={d.isCurrent ? colors.lotus : "rgba(46,125,50,0.35)"}
                 />
               );
             })}
           </Svg>
           <View style={styles.chartLabels}>
-            {week.map((d, i) => (
-              <Text key={i} style={[styles.chartLabel, i === 6 && { color: colors.lotus, fontFamily: fonts.semibold }]}>
+            {bars.map((d, i) => (
+              <Text key={i} style={[styles.chartLabel, d.isCurrent && { color: colors.lotus, fontFamily: fonts.semibold }]}>
                 {d.label}
               </Text>
             ))}
@@ -204,6 +253,8 @@ export default function Insights() {
 }
 
 const styles = StyleSheet.create({
+  topBar: { flexDirection: "row", alignItems: "center", marginBottom: 2 },
+  backBtn: { width: 36, height: 36, alignItems: "center", justifyContent: "center", marginLeft: -8 },
   title: { fontFamily: fonts.bold, fontSize: 24, color: colors.inkDeep, textAlign: "center" },
   sub: { fontFamily: fonts.body, fontSize: 13, color: colors.muted, textAlign: "center", marginTop: 4, marginBottom: 18 },
 
@@ -233,6 +284,12 @@ const styles = StyleSheet.create({
   totalLabel: { fontFamily: fonts.body, fontSize: 11, color: colors.muted },
 
   section: { fontFamily: fonts.bold, fontSize: 16, color: colors.inkDeep, marginTop: 22, marginBottom: 10 },
+  sectionRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 22, marginBottom: 10 },
+  rangeSeg: { flexDirection: "row", backgroundColor: colors.cream, borderRadius: radius.pill, padding: 3 },
+  rangeBtn: { paddingHorizontal: 11, paddingVertical: 5, borderRadius: radius.pill },
+  rangeBtnActive: { backgroundColor: colors.lotusDeep },
+  rangeText: { fontFamily: fonts.medium, fontSize: 11.5, color: colors.muted },
+  rangeTextActive: { fontFamily: fonts.semibold, color: "#fff" },
   chartCard: {
     backgroundColor: colors.surface,
     borderRadius: radius.lg,
