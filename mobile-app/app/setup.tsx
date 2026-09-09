@@ -106,55 +106,53 @@ export default function Setup() {
             <Text style={[styles.fieldLabel, { marginTop: 26 }]}>Set your daily goals</Text>
             <Text style={styles.fieldHint}>These goals will help you build a consistent ritual.</Text>
 
-            <View style={styles.goalCard}>
-              <View style={styles.goalHead}>
-                <Ionicons name="leaf-outline" size={17} color={colors.lotus} />
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.goalTitle}>Daily chant count target</Text>
-                  <Text style={styles.goalHint}>How many slokas do you want to chant each day?</Text>
+            <View style={styles.goalRow}>
+              <View style={[styles.goalCard, styles.goalCardHalf]}>
+                <View style={styles.goalHead}>
+                  <Ionicons name="leaf-outline" size={16} color={colors.lotus} />
+                  <Text style={styles.goalValue}>{chants}</Text>
                 </View>
-                <Text style={styles.goalValue}>{chants}</Text>
+                <Text style={styles.goalTitle}>Chants / day</Text>
+                <Text style={styles.goalHint} numberOfLines={2}>How many slokas each day?</Text>
+                <Slider
+                  style={styles.slider}
+                  minimumValue={1}
+                  maximumValue={51}
+                  step={1}
+                  value={chants}
+                  onValueChange={setChants}
+                  minimumTrackTintColor={colors.lotus}
+                  maximumTrackTintColor={colors.line}
+                  thumbTintColor={colors.lotusDeep}
+                />
+                <View style={styles.sliderEnds}>
+                  <Text style={styles.sliderEndText}>1</Text>
+                  <Text style={styles.sliderEndText}>51</Text>
+                </View>
               </View>
-              <Slider
-                style={styles.slider}
-                minimumValue={1}
-                maximumValue={51}
-                step={1}
-                value={chants}
-                onValueChange={setChants}
-                minimumTrackTintColor={colors.lotus}
-                maximumTrackTintColor={colors.line}
-                thumbTintColor={colors.lotusDeep}
-              />
-              <View style={styles.sliderEnds}>
-                <Text style={styles.sliderEndText}>1</Text>
-                <Text style={styles.sliderEndText}>51 chants</Text>
-              </View>
-            </View>
 
-            <View style={styles.goalCard}>
-              <View style={styles.goalHead}>
-                <Ionicons name="time-outline" size={17} color={colors.amberDeep} />
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.goalTitle}>Daily time target</Text>
-                  <Text style={styles.goalHint}>How much time do you want to spend chanting each day?</Text>
+              <View style={[styles.goalCard, styles.goalCardHalf]}>
+                <View style={styles.goalHead}>
+                  <Ionicons name="time-outline" size={16} color={colors.amberDeep} />
+                  <Text style={styles.goalValue}>{minutes}</Text>
                 </View>
-                <Text style={styles.goalValue}>{minutes}</Text>
-              </View>
-              <Slider
-                style={styles.slider}
-                minimumValue={5}
-                maximumValue={180}
-                step={5}
-                value={minutes}
-                onValueChange={setMinutes}
-                minimumTrackTintColor={colors.amberDeep}
-                maximumTrackTintColor={colors.line}
-                thumbTintColor={colors.copper}
-              />
-              <View style={styles.sliderEnds}>
-                <Text style={styles.sliderEndText}>5 min</Text>
-                <Text style={styles.sliderEndText}>180 min</Text>
+                <Text style={styles.goalTitle}>Minutes / day</Text>
+                <Text style={styles.goalHint} numberOfLines={2}>How long each day?</Text>
+                <Slider
+                  style={styles.slider}
+                  minimumValue={5}
+                  maximumValue={180}
+                  step={5}
+                  value={minutes}
+                  onValueChange={setMinutes}
+                  minimumTrackTintColor={colors.amberDeep}
+                  maximumTrackTintColor={colors.line}
+                  thumbTintColor={colors.copper}
+                />
+                <View style={styles.sliderEnds}>
+                  <Text style={styles.sliderEndText}>5</Text>
+                  <Text style={styles.sliderEndText}>180</Text>
+                </View>
               </View>
             </View>
 
@@ -341,6 +339,7 @@ const styles = StyleSheet.create({
   },
   input: { flex: 1, fontFamily: fonts.medium, fontSize: 15, color: colors.ink, padding: 0 },
 
+  goalRow: { flexDirection: "row", gap: 12, marginBottom: 12 },
   goalCard: {
     backgroundColor: colors.surface,
     borderRadius: radius.lg,
@@ -350,8 +349,9 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     ...shadow.card,
   },
-  goalHead: { flexDirection: "row", gap: 10, alignItems: "flex-start" },
-  goalTitle: { fontFamily: fonts.semibold, fontSize: 14, color: colors.ink },
+  goalCardHalf: { flex: 1, marginBottom: 0 },
+  goalHead: { flexDirection: "row", gap: 8, alignItems: "center", justifyContent: "space-between" },
+  goalTitle: { fontFamily: fonts.semibold, fontSize: 13.5, color: colors.ink, marginTop: 8 },
   goalHint: { fontFamily: fonts.body, fontSize: 11.5, color: colors.muted, marginTop: 2 },
   goalValue: { fontFamily: fonts.bold, fontSize: 20, color: colors.inkDeep, minWidth: 30, textAlign: "right" },
   slider: { width: "100%", height: 34, marginTop: 6 },
