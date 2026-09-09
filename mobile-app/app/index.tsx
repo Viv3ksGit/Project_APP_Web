@@ -1,7 +1,7 @@
 import { Image } from "expo-image";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { useAudioPlayer } from "expo-audio";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Screen from "../components/Screen";
@@ -18,34 +18,46 @@ export default function Landing() {
   const { width } = useWindowDimensions();
   const cardWidth = Math.min(width - 48, width >= 900 ? 520 : 420);
 
-  // A light tambura drone loops while the landing screen is open, and
-  // stops the moment you leave it.
+  // A light tambura drone loops ONLY while this splash screen is the
+  // focused screen, and stops the instant you leave it (Enter, back
+  // button, or any other navigation) — including when expo-router keeps
+  // this screen mounted in the background stack, which a plain
+  // mount/unmount effect would miss.
   //
   // Browsers block audio until the visitor has interacted with the page,
-  // so the mount-time play() below is expected to fail silently the very
+  // so the focus-time play() below is expected to fail silently the very
   // first time the screen ever loads. To make the loop actually audible,
-  // we also start it on the FIRST tap/click/key anywhere on this screen
-  // (not just the Enter button) — that's a real user gesture, so the
-  // browser allows it, and the drone then keeps looping in the
-  // background while the visitor reads the screen, right up until they
-  // navigate away.
+  // we also (re)start it on the FIRST tap/click/key anywhere on this
+  // screen while it's focused — a real user gesture, which the browser
+  // allows.
   const player = useAudioPlayer(TAMBURA_LOOP);
-  const started = useRef(false);
+  const startedRef = useRef(false);
+  const focusedRef = useRef(false);
 
   const startAudio = () => {
-    if (started.current) return;
-    started.current = true;
+    if (startedRef.current || !focusedRef.current) return;
+    startedRef.current = true;
     player.play();
   };
 
   useEffect(() => {
     player.loop = true;
     player.volume = 0.38;
-    player.play();
-    return () => {
-      player.pause();
-    };
   }, [player]);
+
+  useFocusEffect(
+    useCallback(() => {
+      focusedRef.current = true;
+      startedRef.current = false;
+      player.seekTo(0);
+      player.play(); // succeeds once media-engagement/autoplay allows it; otherwise the interaction listener below covers it
+      return () => {
+        focusedRef.current = false;
+        player.pause();
+      };
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [player])
+  );
 
   useEffect(() => {
     const onFirstInteract = () => startAudio();
@@ -64,7 +76,7 @@ export default function Landing() {
   }, [player]);
 
   const enter = () => {
-    startAudio();
+    player.pause();
     const dest = settings.welcomeSeen ? "/(tabs)/home" : "/welcome";
     router.push(dest);
   };
