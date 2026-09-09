@@ -1,14 +1,14 @@
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { useAudioPlayer } from "expo-audio";
-import { useEffect } from "react";
-import { Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { useEffect, useRef } from "react";
+import { Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Screen from "../components/Screen";
 import { BRAND_MARK } from "../lib/deityImages";
 import { colors, fonts, radius, shadow } from "../theme/theme";
 
-const TAMBURA_ENTRY = require("../assets/audio/tambura-loop.wav");
+const TAMBURA_LOOP = require("../assets/audio/tambura-loop.wav");
 
 export default function Landing() {
   const router = useRouter();
@@ -16,13 +16,50 @@ export default function Landing() {
   const { width } = useWindowDimensions();
   const cardWidth = Math.min(width - 48, width >= 900 ? 520 : 420);
 
-  // A single light tambura chime plays once on entry — not a loop.
-  const player = useAudioPlayer(TAMBURA_ENTRY);
+  // A light tambura drone loops while the landing screen is open, and
+  // stops the moment you tap "Enter Shlokas" (or leave the screen any
+  // other way). Browsers block audio until the visitor has interacted
+  // with the page at least once; native has no such restriction. On web,
+  // if the immediate attempt is blocked, retry once on the first
+  // tap/keypress, guarded against double-playing if it actually succeeded.
+  const player = useAudioPlayer(TAMBURA_LOOP);
+  const stoppedRef = useRef(false);
+
   useEffect(() => {
-    player.loop = false;
+    stoppedRef.current = false;
+    player.loop = true;
     player.volume = 0.22;
     player.play();
+
+    if (Platform.OS !== "web") return;
+
+    const retry = () => {
+      if (!stoppedRef.current && !player.playing) player.play();
+      window.removeEventListener("pointerdown", retry);
+      window.removeEventListener("keydown", retry);
+    };
+    window.addEventListener("pointerdown", retry, { once: true });
+    window.addEventListener("keydown", retry, { once: true });
+
+    return () => {
+      window.removeEventListener("pointerdown", retry);
+      window.removeEventListener("keydown", retry);
+    };
   }, [player]);
+
+  // Stop on unmount (navigating away by any route, e.g. deep link/back).
+  useEffect(() => {
+    return () => {
+      stoppedRef.current = true;
+      player.pause();
+    };
+  }, [player]);
+
+  const enter = () => {
+    stoppedRef.current = true;
+    player.pause();
+    router.push("/welcome");
+  };
 
   return (
     <Screen scene>
@@ -38,7 +75,7 @@ export default function Landing() {
             </Text>
           </View>
 
-          <Pressable style={styles.cta} onPress={() => router.push("/welcome")}>
+          <Pressable style={styles.cta} onPress={enter}>
             <Text style={styles.ctaText}>Enter Shlokas</Text>
           </Pressable>
         </View>

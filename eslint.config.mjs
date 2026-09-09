@@ -12,6 +12,11 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // mobile-app/ is a separate Expo/React Native project embedded here for
+    // Vercel's web deploy — it has its own conventions (require() for static
+    // assets, mutable hook-returned objects like expo-audio's player) that
+    // don't fit this repo's Next.js/React-Compiler lint rules.
+    "mobile-app/**",
   ]),
 ]);
 
