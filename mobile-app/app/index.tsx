@@ -1,7 +1,7 @@
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { useAudioPlayer } from "expo-audio";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Screen from "../components/Screen";
@@ -19,17 +19,24 @@ export default function Landing() {
   const cardWidth = Math.min(width - 48, width >= 900 ? 520 : 420);
 
   // A light tambura drone loops while the landing screen is open, and
-  // stops the moment you tap "Enter Shlokas" (or leave the screen any
-  // other way).
+  // stops the moment you leave it.
   //
-  // Browsers block audio until the visitor has interacted with the page —
-  // and on this screen that first interaction is almost always the Enter
-  // button itself. So instead of racing a generic "play on first click"
-  // listener against the button's own pause+navigate (which silenced it
-  // before it could be heard), the button press explicitly (re)starts
-  // playback — guaranteed allowed, since it's a direct click handler — and
-  // navigation is delayed just long enough for the chime to be audible.
+  // Browsers block audio until the visitor has interacted with the page,
+  // so the mount-time play() below is expected to fail silently the very
+  // first time the screen ever loads. To make the loop actually audible,
+  // we also start it on the FIRST tap/click/key anywhere on this screen
+  // (not just the Enter button) — that's a real user gesture, so the
+  // browser allows it, and the drone then keeps looping in the
+  // background while the visitor reads the screen, right up until they
+  // navigate away.
   const player = useAudioPlayer(TAMBURA_LOOP);
+  const started = useRef(false);
+
+  const startAudio = () => {
+    if (started.current) return;
+    started.current = true;
+    player.play();
+  };
 
   useEffect(() => {
     player.loop = true;
@@ -40,13 +47,21 @@ export default function Landing() {
     };
   }, [player]);
 
+  useEffect(() => {
+    const onFirstInteract = () => startAudio();
+    window.addEventListener?.("pointerdown", onFirstInteract);
+    window.addEventListener?.("keydown", onFirstInteract);
+    return () => {
+      window.removeEventListener?.("pointerdown", onFirstInteract);
+      window.removeEventListener?.("keydown", onFirstInteract);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [player]);
+
   const enter = () => {
-    player.play();
+    startAudio();
     const dest = settings.welcomeSeen ? "/(tabs)/home" : "/welcome";
-    setTimeout(() => {
-      player.pause();
-      router.push(dest);
-    }, 350);
+    router.push(dest);
   };
 
   return (
