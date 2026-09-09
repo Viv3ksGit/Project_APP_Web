@@ -30,6 +30,13 @@ const STEP_SUBS = [
 const STEP_TABS = ["Basics", "Practice"];
 const LAST_STEP = STEP_TITLES.length - 1;
 
+const REMINDER_OPTIONS: { key: Reminder; title: string; sub: string; time: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+  { key: "morning", title: "Morning", sub: "Start your day with divine energy", time: "7:00 AM", icon: "sunny-outline" },
+  { key: "evening", title: "Evening", sub: "Unwind and reflect after your day", time: "8:00 PM", icon: "partly-sunny-outline" },
+  { key: "custom", title: "Custom time", sub: "Choose a time that works for you", time: "Set custom time", icon: "moon-outline" },
+  { key: "none", title: "I'll do it without reminders", sub: "I prefer to practice on my own", time: "", icon: "notifications-off-outline" },
+];
+
 export default function Setup() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -46,6 +53,7 @@ export default function Setup() {
   const [speed, setSpeed] = useState<"slow" | "medium" | "fast">(settings.scrollSpeed);
   const [reminder, setReminder] = useState<Reminder>(settings.reminder);
   const [hoveredStyle, setHoveredStyle] = useState<RitualStyle | null>(null);
+  const [reminderOpen, setReminderOpen] = useState(false);
 
   useEffect(() => {
     getStoredName().then((n) => n && setName(n));
@@ -272,32 +280,54 @@ export default function Setup() {
             </View>
 
             <Text style={[styles.fieldLabel, { marginTop: 24 }]}>When should we remind you?</Text>
-            {[
-              { key: "morning" as const, title: "Morning", sub: "Start your day with divine energy", time: "7:00 AM", icon: "sunny-outline" as const },
-              { key: "evening" as const, title: "Evening", sub: "Unwind and reflect after your day", time: "8:00 PM", icon: "partly-sunny-outline" as const },
-              { key: "custom" as const, title: "Custom time", sub: "Choose a time that works for you", time: "Set custom time", icon: "moon-outline" as const },
-              { key: "none" as const, title: "I'll do it without reminders", sub: "I prefer to practice on my own", time: "", icon: "notifications-off-outline" as const },
-            ].map((r) => (
-              <Pressable key={r.key} onPress={() => setReminder(r.key)} style={[styles.option, reminder === r.key && styles.optionActive]}>
-                <View style={styles.optionIcon}>
-                  <Ionicons name={r.icon} size={18} color={colors.amberDeep} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.optionTitle}>{r.title}</Text>
-                  <Text style={styles.optionSub}>{r.sub}</Text>
-                  {!!r.time && (
-                    <Text style={styles.optionTime}>
-                      <Ionicons name="time-outline" size={11} color={colors.muted} /> {r.time}
-                    </Text>
+            {(() => {
+              const current = REMINDER_OPTIONS.find((r) => r.key === reminder) ?? REMINDER_OPTIONS[0];
+              return (
+                <View>
+                  <Pressable
+                    onPress={() => setReminderOpen((o) => !o)}
+                    style={[styles.dropdownTrigger, reminderOpen && styles.dropdownTriggerOpen]}
+                  >
+                    <View style={styles.optionIcon}>
+                      <Ionicons name={current.icon} size={18} color={colors.amberDeep} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.optionTitle}>{current.title}</Text>
+                      {!!current.time && <Text style={styles.optionTime}>{current.time}</Text>}
+                    </View>
+                    <Ionicons name={reminderOpen ? "chevron-up" : "chevron-down"} size={18} color={colors.muted} />
+                  </Pressable>
+
+                  {reminderOpen && (
+                    <View style={styles.dropdownMenu}>
+                      {REMINDER_OPTIONS.map((r) => (
+                        <Pressable
+                          key={r.key}
+                          onPress={() => {
+                            setReminder(r.key);
+                            setReminderOpen(false);
+                          }}
+                          style={[styles.dropdownItem, reminder === r.key && styles.dropdownItemActive]}
+                        >
+                          <View style={styles.optionIcon}>
+                            <Ionicons name={r.icon} size={18} color={colors.amberDeep} />
+                          </View>
+                          <View style={{ flex: 1 }}>
+                            <Text style={styles.optionTitle}>{r.title}</Text>
+                            <Text style={styles.optionSub}>{r.sub}</Text>
+                          </View>
+                          <Ionicons
+                            name={reminder === r.key ? "checkmark-circle" : "ellipse-outline"}
+                            size={20}
+                            color={reminder === r.key ? colors.lotus : colors.line}
+                          />
+                        </Pressable>
+                      ))}
+                    </View>
                   )}
                 </View>
-                <Ionicons
-                  name={reminder === r.key ? "checkmark-circle" : "ellipse-outline"}
-                  size={22}
-                  color={reminder === r.key ? colors.lotus : colors.line}
-                />
-              </Pressable>
-            ))}
+              );
+            })()}
             <Text style={styles.reminderNote}>
               Reminders are saved as a preference for now — notification delivery arrives with the full app build.
             </Text>
@@ -427,6 +457,36 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   styleHint: { fontFamily: fonts.body, fontSize: 10.5, color: "#fff", textAlign: "center", lineHeight: 14 },
+
+  dropdownTrigger: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    borderWidth: 1.5,
+    borderColor: colors.line,
+    padding: 13,
+  },
+  dropdownTriggerOpen: { borderColor: colors.lotus },
+  dropdownMenu: {
+    marginTop: 8,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.line,
+    overflow: "hidden",
+    ...shadow.card,
+  },
+  dropdownItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    padding: 13,
+    borderTopWidth: 1,
+    borderTopColor: colors.line,
+  },
+  dropdownItemActive: { backgroundColor: "rgba(46,125,50,0.05)" },
 
   viewRow: { flexDirection: "row", gap: 10 },
   viewCard: {
