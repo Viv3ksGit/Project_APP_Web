@@ -45,6 +45,7 @@ export default function Setup() {
   const [autoScroll, setAutoScroll] = useState(settings.autoScroll);
   const [speed, setSpeed] = useState<"slow" | "medium" | "fast">(settings.scrollSpeed);
   const [reminder, setReminder] = useState<Reminder>(settings.reminder);
+  const [hoveredStyle, setHoveredStyle] = useState<RitualStyle | null>(null);
 
   useEffect(() => {
     getStoredName().then((n) => n && setName(n));
@@ -201,27 +202,43 @@ export default function Setup() {
         {step === 1 && (
           <>
             <Text style={styles.fieldLabel}>Choose your chanting style</Text>
-            {[
-              { key: "calm" as const, title: "Calm Mode", accent: "Slow, mindful and immersive", hint: "Perfect for deep focus and inner peace.", icon: "leaf-outline" as const },
-              { key: "count" as const, title: "Count Mode", accent: "Focus on repetitions", hint: "Ideal for sankalpa and building consistency.", icon: "sync-outline" as const },
-              { key: "timed" as const, title: "Timed Mode", accent: "Focus on minutes", hint: "Great for fitting chanting into a busy day.", icon: "time-outline" as const },
-            ].map((m) => (
-              <Pressable key={m.key} onPress={() => setStyle(m.key)} style={[styles.option, style === m.key && styles.optionActive]}>
-                <View style={styles.optionIcon}>
-                  <Ionicons name={m.icon} size={18} color={colors.lotus} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.optionTitle}>{m.title}</Text>
-                  <Text style={styles.optionAccent}>{m.accent}</Text>
-                  <Text style={styles.optionSub}>{m.hint}</Text>
-                </View>
-                <Ionicons
-                  name={style === m.key ? "checkmark-circle" : "ellipse-outline"}
-                  size={22}
-                  color={style === m.key ? colors.lotus : colors.line}
-                />
-              </Pressable>
-            ))}
+            <Text style={styles.fieldHint}>Hover a box to see what it's best for.</Text>
+            <View style={styles.styleRow}>
+              {[
+                { key: "calm" as const, title: "Calm Mode", accent: "Slow & mindful", hint: "Perfect for deep focus and inner peace.", icon: "leaf-outline" as const },
+                { key: "count" as const, title: "Count Mode", accent: "Repetitions", hint: "Ideal for sankalpa and building consistency.", icon: "sync-outline" as const },
+                { key: "timed" as const, title: "Timed Mode", accent: "By minutes", hint: "Great for fitting chanting into a busy day.", icon: "time-outline" as const },
+              ].map((m) => {
+                const active = style === m.key;
+                const hovered = hoveredStyle === m.key;
+                return (
+                  <Pressable
+                    key={m.key}
+                    onPress={() => setStyle(m.key)}
+                    onHoverIn={() => setHoveredStyle(m.key)}
+                    onHoverOut={() => setHoveredStyle((k) => (k === m.key ? null : k))}
+                    style={[styles.styleBox, active && styles.styleBoxActive]}
+                  >
+                    {active && (
+                      <Ionicons
+                        name="checkmark-circle"
+                        size={15}
+                        color={colors.lotus}
+                        style={styles.styleCheck}
+                      />
+                    )}
+                    <Ionicons name={m.icon} size={20} color={colors.lotus} />
+                    <Text style={styles.styleTitle}>{m.title}</Text>
+                    <Text style={styles.styleAccent}>{m.accent}</Text>
+                    {hovered && (
+                      <View style={styles.styleHintOverlay}>
+                        <Text style={styles.styleHint} numberOfLines={4}>{m.hint}</Text>
+                      </View>
+                    )}
+                  </Pressable>
+                );
+              })}
+            </View>
 
             <Text style={[styles.fieldLabel, { marginTop: 24 }]}>Customize your experience</Text>
             <Text style={styles.fieldHint}>You can change these anytime in Settings.</Text>
@@ -379,6 +396,37 @@ const styles = StyleSheet.create({
   optionAccent: { fontFamily: fonts.medium, fontSize: 12, color: colors.amberDeep, marginTop: 1 },
   optionSub: { fontFamily: fonts.body, fontSize: 12, color: colors.muted, marginTop: 2 },
   optionTime: { fontFamily: fonts.body, fontSize: 11.5, color: colors.muted, marginTop: 4 },
+
+  styleRow: { flexDirection: "row", gap: 10, marginBottom: 4 },
+  styleBox: {
+    flex: 1,
+    aspectRatio: 1,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    borderWidth: 1.5,
+    borderColor: colors.line,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 8,
+    gap: 2,
+  },
+  styleBoxActive: { borderColor: colors.lotus, backgroundColor: "rgba(46,125,50,0.05)" },
+  styleCheck: { position: "absolute", top: 6, right: 6 },
+  styleTitle: { fontFamily: fonts.semibold, fontSize: 12, color: colors.ink, textAlign: "center", marginTop: 2 },
+  styleAccent: { fontFamily: fonts.body, fontSize: 10.5, color: colors.amberDeep, textAlign: "center" },
+  styleHintOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(46,60,42,0.92)",
+    borderRadius: radius.lg,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 8,
+  },
+  styleHint: { fontFamily: fonts.body, fontSize: 10.5, color: "#fff", textAlign: "center", lineHeight: 14 },
 
   viewRow: { flexDirection: "row", gap: 10 },
   viewCard: {
