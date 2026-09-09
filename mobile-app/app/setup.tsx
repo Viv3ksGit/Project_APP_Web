@@ -27,6 +27,7 @@ const STEP_SUBS = [
   "Set up your ritual — you can change any of this anytime.",
   "Pick a chanting style and when you'd like a nudge.",
 ];
+const STEP_TABS = ["Basics", "Practice"];
 const LAST_STEP = STEP_TITLES.length - 1;
 
 export default function Setup() {
@@ -63,23 +64,17 @@ export default function Setup() {
   return (
     <Screen scene>
     <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-      {/* Header: back + step dots */}
+      {/* Header: back + small step tabs */}
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <Pressable onPress={back} hitSlop={12} style={styles.backBtn}>
           <Ionicons name="chevron-back" size={22} color={colors.inkDeep} />
         </Pressable>
-        <View style={styles.stepsWrap}>
-          <Text style={styles.stepLabel}>Step {step + 1} of {STEP_TITLES.length}</Text>
-          <View style={styles.dots}>
-            {STEP_TITLES.map((_, i) => (
-              <View key={i} style={styles.dotRow}>
-                <View style={[styles.dot, i <= step && styles.dotDone]}>
-                  {i < step && <Ionicons name="checkmark" size={10} color="#fff" />}
-                </View>
-                {i < LAST_STEP && <View style={[styles.dotLine, i < step && styles.dotLineDone]} />}
-              </View>
-            ))}
-          </View>
+        <View style={styles.tabsWrap}>
+          {STEP_TABS.map((label, i) => (
+            <Pressable key={label} onPress={() => setStep(i)} style={[styles.tab, i === step && styles.tabActive]}>
+              <Text style={[styles.tabText, i === step && styles.tabTextActive]}>{label}</Text>
+            </Pressable>
+          ))}
         </View>
         <View style={styles.backBtn} />
       </View>
@@ -313,23 +308,20 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "transparent" },
   header: { flexDirection: "row", alignItems: "center", paddingHorizontal: 10, paddingBottom: 10 },
   backBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
-  stepsWrap: { flex: 1, alignItems: "center", gap: 7 },
-  stepLabel: { fontFamily: fonts.semibold, fontSize: 11, color: colors.copper, letterSpacing: 0.5 },
-  dots: { flexDirection: "row", alignItems: "center" },
-  dotRow: { flexDirection: "row", alignItems: "center" },
-  dot: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    borderWidth: 1.5,
-    borderColor: colors.line,
-    backgroundColor: colors.surface,
-    alignItems: "center",
+  tabsWrap: {
+    flex: 1,
+    flexDirection: "row",
     justifyContent: "center",
+    gap: 6,
+    backgroundColor: colors.cream,
+    borderRadius: radius.pill,
+    padding: 3,
+    alignSelf: "center",
   },
-  dotDone: { backgroundColor: colors.lotusDeep, borderColor: colors.lotusDeep },
-  dotLine: { width: 34, height: 2, backgroundColor: colors.line },
-  dotLineDone: { backgroundColor: colors.lotusDeep },
+  tab: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: radius.pill },
+  tabActive: { backgroundColor: colors.lotusDeep },
+  tabText: { fontFamily: fonts.medium, fontSize: 12, color: colors.muted },
+  tabTextActive: { fontFamily: fonts.semibold, color: "#fff" },
 
   title: { fontFamily: fonts.bold, fontSize: 25, color: colors.inkDeep, textAlign: "center", marginTop: 8 },
   sub: { fontFamily: fonts.body, fontSize: 13.5, color: colors.muted, textAlign: "center", marginTop: 8, lineHeight: 20, marginBottom: 20 },
