@@ -1,68 +1,49 @@
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import { useRef, useState } from "react";
-import {
-  NativeScrollEvent,
-  NativeSyntheticEvent,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  useWindowDimensions,
-  View,
-} from "react-native";
+import { useAudioPlayer } from "expo-audio";
+import { useEffect } from "react";
+import { Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Screen from "../components/Screen";
 import { BRAND_MARK } from "../lib/deityImages";
 import { colors, fonts, radius, shadow } from "../theme/theme";
 
-const SLIDES = [
-  { title: "My Shloka Ritual", body: "A calm daily practice for Tamil & English chanting." },
-  { title: "Nourish Your Soul", body: "Daily chants, mindful listening and meaningful progress to bring inner calm." },
-];
+const TAMBURA_LOOP = require("../assets/audio/tambura-loop.wav");
 
 export default function Landing() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [index, setIndex] = useState(0);
   const { width } = useWindowDimensions();
   const cardWidth = Math.min(width - 48, width >= 900 ? 520 : 420);
 
-  const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const i = Math.round(e.nativeEvent.contentOffset.x / cardWidth);
-    if (i !== index) setIndex(i);
-  };
+  // Gentle tambura drone while the landing screen is open — stops the
+  // moment you leave (Enter Shlokas or navigating away).
+  const player = useAudioPlayer(TAMBURA_LOOP);
+  useEffect(() => {
+    player.loop = true;
+    player.volume = 0.22;
+    player.play();
+    return () => {
+      player.pause();
+    };
+  }, [player]);
 
   return (
     <Screen scene>
       <View style={[styles.center, { paddingTop: insets.top, paddingBottom: insets.bottom + 24 }]}>
         <View style={[styles.card, { width: cardWidth }]}>
-          <ScrollView
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            onScroll={onScroll}
-            scrollEventThrottle={16}
-          >
-            {SLIDES.map((s, i) => (
-              <View key={i} style={[styles.slide, { width: cardWidth }]}>
-                <View style={styles.halo}>
-                  <Image source={BRAND_MARK} style={styles.mark} contentFit="contain" />
-                </View>
-                <Text style={styles.title}>{s.title}</Text>
-                <Text style={styles.body}>{s.body}</Text>
-              </View>
-            ))}
-          </ScrollView>
-
-          <View style={styles.dots}>
-            {SLIDES.map((_, i) => (
-              <View key={i} style={[styles.dot, i === index && styles.dotActive]} />
-            ))}
+          <View style={styles.slide}>
+            <View style={styles.halo}>
+              <Image source={BRAND_MARK} style={styles.mark} contentFit="contain" />
+            </View>
+            <Text style={styles.title}>My Shloka Ritual</Text>
+            <Text style={styles.body}>
+              Daily chants, mindful listening and meaningful progress to bring inner calm.
+            </Text>
           </View>
 
           <Pressable style={styles.cta} onPress={() => router.push("/welcome")}>
-            <Text style={styles.ctaText}>Enter Slokas</Text>
+            <Text style={styles.ctaText}>Enter Shlokas</Text>
           </Pressable>
         </View>
       </View>
@@ -80,7 +61,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     ...shadow.card,
   },
-  slide: { alignItems: "center", justifyContent: "center", paddingHorizontal: 28, paddingTop: 16 },
+  slide: { alignItems: "center", justifyContent: "center", paddingHorizontal: 28, paddingTop: 16, paddingBottom: 8 },
   halo: {
     width: 116,
     height: 116,
@@ -101,11 +82,9 @@ const styles = StyleSheet.create({
     marginTop: 12,
     lineHeight: 23,
   },
-  dots: { flexDirection: "row", justifyContent: "center", gap: 8, marginTop: 24, marginBottom: 20 },
-  dot: { width: 9, height: 9, borderRadius: 5, backgroundColor: "rgba(38,71,45,0.18)" },
-  dotActive: { backgroundColor: colors.lotusNight, width: 9 },
   cta: {
     marginHorizontal: 20,
+    marginTop: 24,
     backgroundColor: colors.lotusDeep,
     borderRadius: radius.pill,
     paddingVertical: 16,

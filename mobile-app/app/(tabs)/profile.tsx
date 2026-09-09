@@ -96,6 +96,10 @@ export default function Profile() {
       ) : (
         favSlokas.map((s) => <SlokaCard key={s.id} sloka={s} />)
       )}
+
+      <Text style={styles.credit}>
+        Landing tambura sound: "Amritavarshini" by Arunasank, Wikimedia Commons, licensed CC BY-SA 4.0.
+      </Text>
     </ScrollView>
     </Screen>
   );
@@ -170,4 +174,13 @@ const styles = StyleSheet.create({
   topCount: { fontFamily: fonts.semibold, fontSize: 14, color: colors.copper },
   empty: { alignItems: "center", gap: 12, paddingVertical: 30 },
   emptyText: { fontFamily: fonts.body, fontSize: 14, color: colors.muted, textAlign: "center", paddingHorizontal: 30 },
+  credit: {
+    fontFamily: fonts.body,
+    fontSize: 10.5,
+    color: colors.muted,
+    textAlign: "center",
+    marginTop: 28,
+    paddingHorizontal: 10,
+    lineHeight: 15,
+  },
 });
