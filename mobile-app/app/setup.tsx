@@ -109,11 +109,9 @@ export default function Setup() {
             <View style={styles.goalRow}>
               <View style={[styles.goalCard, styles.goalCardHalf]}>
                 <View style={styles.goalHead}>
-                  <Ionicons name="leaf-outline" size={16} color={colors.lotus} />
-                  <Text style={styles.goalValue}>{chants}</Text>
+                  <Ionicons name="leaf-outline" size={14} color={colors.lotus} />
+                  <Text style={styles.goalTitle}>Chants / day</Text>
                 </View>
-                <Text style={styles.goalTitle}>Chants / day</Text>
-                <Text style={styles.goalHint} numberOfLines={2}>How many slokas each day?</Text>
                 <Slider
                   style={styles.slider}
                   minimumValue={1}
@@ -127,17 +125,16 @@ export default function Setup() {
                 />
                 <View style={styles.sliderEnds}>
                   <Text style={styles.sliderEndText}>1</Text>
+                  <Text style={styles.goalValue}>{chants}</Text>
                   <Text style={styles.sliderEndText}>51</Text>
                 </View>
               </View>
 
               <View style={[styles.goalCard, styles.goalCardHalf]}>
                 <View style={styles.goalHead}>
-                  <Ionicons name="time-outline" size={16} color={colors.amberDeep} />
-                  <Text style={styles.goalValue}>{minutes}</Text>
+                  <Ionicons name="time-outline" size={14} color={colors.amberDeep} />
+                  <Text style={styles.goalTitle}>Minutes / day</Text>
                 </View>
-                <Text style={styles.goalTitle}>Minutes / day</Text>
-                <Text style={styles.goalHint} numberOfLines={2}>How long each day?</Text>
                 <Slider
                   style={styles.slider}
                   minimumValue={5}
@@ -151,6 +148,7 @@ export default function Setup() {
                 />
                 <View style={styles.sliderEnds}>
                   <Text style={styles.sliderEndText}>5</Text>
+                  <Text style={styles.goalValue}>{minutes}</Text>
                   <Text style={styles.sliderEndText}>180</Text>
                 </View>
               </View>
@@ -339,21 +337,20 @@ const styles = StyleSheet.create({
   },
   input: { flex: 1, fontFamily: fonts.medium, fontSize: 15, color: colors.ink, padding: 0 },
 
-  goalRow: { flexDirection: "row", gap: 12, marginBottom: 12 },
+  goalRow: { flexDirection: "row", gap: 10, marginBottom: 12 },
   goalCard: {
     backgroundColor: colors.surface,
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.line,
-    padding: 14,
+    padding: 10,
     marginBottom: 12,
-    ...shadow.card,
   },
   goalCardHalf: { flex: 1, marginBottom: 0 },
-  goalHead: { flexDirection: "row", gap: 8, alignItems: "center", justifyContent: "space-between" },
-  goalTitle: { fontFamily: fonts.semibold, fontSize: 13.5, color: colors.ink, marginTop: 8 },
+  goalHead: { flexDirection: "row", gap: 6, alignItems: "center" },
+  goalTitle: { fontFamily: fonts.semibold, fontSize: 11.5, color: colors.ink },
   goalHint: { fontFamily: fonts.body, fontSize: 11.5, color: colors.muted, marginTop: 2 },
-  goalValue: { fontFamily: fonts.bold, fontSize: 20, color: colors.inkDeep, minWidth: 30, textAlign: "right" },
+  goalValue: { fontFamily: fonts.bold, fontSize: 14, color: colors.inkDeep },
   slider: { width: "100%", height: 34, marginTop: 6 },
   sliderEnds: { flexDirection: "row", justifyContent: "space-between", marginTop: -2 },
   sliderEndText: { fontFamily: fonts.body, fontSize: 10.5, color: colors.muted },
