@@ -86,9 +86,7 @@ export default function Landing() {
       <View style={[styles.center, { paddingTop: insets.top, paddingBottom: insets.bottom + 24 }]}>
         <View style={[styles.card, { width: cardWidth }]}>
           <View style={styles.slide}>
-            <View style={styles.halo}>
-              <Image source={BRAND_MARK} style={styles.mark} contentFit="contain" />
-            </View>
+            <Image source={BRAND_MARK} style={styles.mark} contentFit="contain" />
             <Text style={styles.title}>My Shloka Ritual</Text>
             <Text style={styles.body}>
               Daily chants, mindful listening and meaningful progress to bring inner calm.
@@ -115,17 +113,7 @@ const styles = StyleSheet.create({
     ...shadow.card,
   },
   slide: { alignItems: "center", justifyContent: "center", paddingHorizontal: 28, paddingTop: 16, paddingBottom: 8 },
-  halo: {
-    width: 116,
-    height: 116,
-    borderRadius: 58,
-    backgroundColor: "rgba(255,255,255,0.9)",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 26,
-    ...shadow.card,
-  },
-  mark: { width: 96, height: 96 },
+  mark: { width: 132, height: 132, marginBottom: 18 },
   title: { fontFamily: fonts.bold, fontSize: 28, color: colors.ink, textAlign: "center" },
   body: {
     fontFamily: fonts.body,
