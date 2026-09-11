@@ -125,7 +125,7 @@ const styles = StyleSheet.create({
     marginBottom: 26,
     ...shadow.card,
   },
-  mark: { width: 78, height: 78 },
+  mark: { width: 96, height: 96 },
   title: { fontFamily: fonts.bold, fontSize: 28, color: colors.ink, textAlign: "center" },
   body: {
     fontFamily: fonts.body,
